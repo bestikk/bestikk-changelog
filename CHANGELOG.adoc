@@ -1,0 +1,21 @@
+= bestikk-changelog Changelog
+:uri-repo: https://github.com/bestikk/bestikk-changelog
+
+This document provides a high-level view of the changes introduced in bestikk-changelog by release.
+For a detailed view of what has changed, refer to the {uri-repo}/commits/main[commit history] on GitHub.
+
+== Unreleased
+
+== v1.0.0 (2026-08-07)
+
+Initial release.
+
+=== Added
+
+* `release` and `notes` library functions and CLI commands to manage a Keep a Changelog (https://keepachangelog.com) style `CHANGELOG.adoc`: roll the `== Unreleased` section into a dated `== v<version> (<date>)` section, and extract a release section as Markdown release notes (via `downdoc`) suitable for a GitHub release
+
+=== Infrastructure
+
+* Lint and format the codebase with Biome (`npm run lint`, `npm run lint:fix`, `npm run format`)
+* Add a `Test` GitHub Actions workflow running lint and the test suite on Node 18/20/22 for every push and pull request
+* Add a `Release` GitHub Actions workflow (manually dispatched with a version) that bumps the package version, rolls the changelog, tags, publishes to npm, and creates the GitHub release using this project's own CLI

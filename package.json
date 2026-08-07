@@ -1,0 +1,47 @@
+{
+  "name": "bestikk-changelog",
+  "version": "1.0.0",
+  "description": "Manage a Keep a Changelog (AsciiDoc) CHANGELOG.adoc file: roll the Unreleased section into a dated release, and extract a release as Markdown release notes.",
+  "type": "module",
+  "main": "index.js",
+  "bin": {
+    "bestikk-changelog": "./bin/cli.js"
+  },
+  "files": [
+    "index.js",
+    "bin/"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "test": "node --test",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bestikk/bestikk-changelog.git"
+  },
+  "keywords": [
+    "changelog",
+    "keepachangelog",
+    "asciidoc",
+    "downdoc",
+    "release",
+    "cli"
+  ],
+  "author": "Guillaume Grossetie",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bestikk/bestikk-changelog/issues"
+  },
+  "homepage": "https://github.com/bestikk/bestikk-changelog#readme",
+  "dependencies": {
+    "downdoc": "^1.1.0-stable"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.7"
+  }
+}

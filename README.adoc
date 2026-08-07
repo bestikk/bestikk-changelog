@@ -1,0 +1,75 @@
+= bestikk-changelog
+:uri-repo: https://github.com/bestikk/bestikk-changelog
+:uri-keepachangelog: https://keepachangelog.com/en/1.1.0/
+
+Manage a {uri-keepachangelog}[Keep a Changelog] style `CHANGELOG.adoc`: roll the `== Unreleased` section into a dated release, and extract a release section as Markdown release notes (via https://github.com/asciidoctor/downdoc[downdoc]) suitable for a GitHub release.
+
+== Changelog format
+
+[source,asciidoc]
+----
+= Project Changelog
+
+== Unreleased
+
+== v1.0.0 (2024-01-15)
+
+Optional summary paragraph, used as the release notes summary.
+
+=== Added
+
+* A new feature
+
+=== Fixed
+
+* A bug fix
+
+== v0.9.0 (2023-12-01)
+...
+----
+
+== Install
+
+[source,shell]
+----
+npm install bestikk-changelog
+----
+
+== CLI usage
+
+[source,shell]
+----
+# Roll the "Unreleased" section into a dated "v1.0.0" section
+npx bestikk-changelog release 1.0.0
+
+# Print the "v1.0.0" section as Markdown release notes (for a GitHub release)
+npx bestikk-changelog notes 1.0.0
+----
+
+Both commands accept `--file <path>` (default: `CHANGELOG.adoc`).
+`release` accepts `--date <YYYY-MM-DD>` (default: today).
+`notes` accepts `--author <name>` (default: `$GITHUB_ACTOR` or the tag's commit author), `--previous-tag <tag>` (default: the tag before `v<version>`), and `--repo-url <url>` (default: inferred from the `origin` git remote) — used to link the full diff between releases.
+
+== Library usage
+
+[source,js]
+----
+import { rollUnreleased, extractReleaseNotes } from 'bestikk-changelog'
+import { readFileSync, writeFileSync } from 'node:fs'
+
+const content = readFileSync('CHANGELOG.adoc', 'utf8')
+
+// Roll "Unreleased" into "v1.0.0 (2024-01-15)"
+writeFileSync('CHANGELOG.adoc', rollUnreleased(content, '1.0.0', '2024-01-15'))
+
+// Extract "v1.0.0" as Markdown release notes
+const notes = extractReleaseNotes(content, '1.0.0', {
+  author: 'octocat',
+  previousTag: 'v0.9.0',
+  repoUrl: 'https://github.com/example/example',
+})
+----
+
+== License
+
+MIT
