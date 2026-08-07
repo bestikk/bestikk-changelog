@@ -18,6 +18,12 @@ test('rollUnreleased throws when there is no Unreleased section', () => {
   assert.throws(() => rollUnreleased('= Changelog\n\n== v1.0.0 (2024-01-15)\n', '2.0.0', '2024-02-01'), /Unreleased/)
 })
 
+test('rollUnreleased accepts a different style, reusing the "==" marker instead of "##"', () => {
+  const content = '= Changelog\n\n== [Unreleased]\n\n=== Added\n\n* Something\n'
+  const result = rollUnreleased(content, '1.0.0', '2024-01-15', { style: 'keepachangelog' })
+  assert.equal(result, '= Changelog\n\n== [Unreleased]\n\n== [1.0.0] - 2024-01-15\n\n=== Added\n\n* Something\n')
+})
+
 test('extractReleaseNotes extracts and formats a release section as Markdown', async () => {
   const content = `= Project Changelog
 :uri-repo: https://github.com/example/example

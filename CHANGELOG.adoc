@@ -13,8 +13,10 @@ Initial release.
 === Added
 
 * `release` and `notes` library functions and CLI commands to manage a Keep a Changelog (https://keepachangelog.com) style `CHANGELOG.adoc`: roll the `== Unreleased` section into a dated `== v<version> (<date>)` section, and extract a release section as Markdown release notes (via `downdoc`) suitable for a GitHub release
-* Support the native Keep a Changelog Markdown format (e.g. `CHANGELOG.md`) as an alternative to AsciiDoc, selected via the `format` option (`adoc`/`markdown`) or auto-detected by the CLI from the `--file` extension
+* Support a native Markdown changelog (e.g. `CHANGELOG.md`) as an alternative to AsciiDoc, selected via the `format` option (`adoc`/`markdown`) or auto-detected by the CLI from the `--file` extension
 * Make `downdoc` an optional dependency, loaded lazily only when processing the `adoc` format, so a Markdown-only changelog doesn't require it
+* Support configurable "Unreleased"/release heading syntax via the `style` option (`keepachangelog`, `title-paren`, `title-paren-suffix`, or a custom style object), covering variations such as asciidoctor-emoji's and asciidoctor-vscode's changelogs.
+The `adoc` format shares the same styles, just with the AsciiDoc heading marker instead of Markdown's — both are a "level 2" heading in their respective syntax
 
 === Infrastructure
 

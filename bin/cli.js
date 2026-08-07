@@ -1,9 +1,15 @@
 #!/usr/bin/env node
 // Usage:
-//   bestikk-changelog release <version> [--file CHANGELOG.adoc] [--format adoc|markdown] [--date YYYY-MM-DD]
-//   bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown] [--author name] [--previous-tag tag] [--repo-url url]
+//   bestikk-changelog release <version> [--file CHANGELOG.adoc] [--format adoc|markdown]
+//                                        [--style keepachangelog|title-paren|title-paren-suffix]
+//                                        [--date YYYY-MM-DD] [--suffix text]
+//   bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown]
+//                                      [--style keepachangelog|title-paren|title-paren-suffix]
+//                                      [--author name] [--previous-tag tag] [--repo-url url]
 //
-// "--format" defaults to what "--file" looks like ("*.md"/"*.markdown" -> markdown, otherwise adoc).
+// "--format" defaults to what "--file" looks like ("*.md"/"*.markdown" -> markdown, otherwise
+// adoc). "--style" only applies to the "markdown" format and defaults to "keepachangelog";
+// see lib/formats/markdown-styles.js for what each preset expects.
 
 import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -13,7 +19,9 @@ import { extractReleaseNotes, rollUnreleased } from '../index.js'
 const OPTION_FLAGS = {
   '--file': 'file',
   '--format': 'format',
+  '--style': 'style',
   '--date': 'date',
+  '--suffix': 'suffix',
   '--author': 'author',
   '--previous-tag': 'previousTag',
   '--repo-url': 'repoUrl',
@@ -55,8 +63,12 @@ function inferFormat(file) {
 function usageAndExit() {
   console.error(
     'Usage:\n' +
-      '  bestikk-changelog release <version> [--file CHANGELOG.adoc] [--format adoc|markdown] [--date YYYY-MM-DD]\n' +
-      '  bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown] [--author name] [--previous-tag tag] [--repo-url url]',
+      '  bestikk-changelog release <version> [--file CHANGELOG.adoc] [--format adoc|markdown]\n' +
+      '                                       [--style keepachangelog|title-paren|title-paren-suffix]\n' +
+      '                                       [--date YYYY-MM-DD] [--suffix text]\n' +
+      '  bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown]\n' +
+      '                                     [--style keepachangelog|title-paren|title-paren-suffix]\n' +
+      '                                     [--author name] [--previous-tag tag] [--repo-url url]',
   )
   process.exit(9)
 }
@@ -73,11 +85,12 @@ if (!version || !['release', 'notes'].includes(command)) usageAndExit()
 
 const changelogPath = resolve(options.file)
 const format = options.format || inferFormat(options.file)
+const style = options.style
 const content = readFileSync(changelogPath, 'utf8')
 
 if (command === 'release') {
   const releaseDate = options.date || new Date().toISOString().slice(0, 10)
-  writeFileSync(changelogPath, rollUnreleased(content, version, releaseDate, { format }))
+  writeFileSync(changelogPath, rollUnreleased(content, version, releaseDate, { format, style, suffix: options.suffix }))
 } else {
   let author = options.author || process.env.GITHUB_ACTOR
   if (!author) {
@@ -96,6 +109,6 @@ if (command === 'release') {
     }
   }
   const repoUrl = options.repoUrl || inferRepoUrl()
-  const notes = await extractReleaseNotes(content, version, { author, previousTag, repoUrl, format })
+  const notes = await extractReleaseNotes(content, version, { author, previousTag, repoUrl, format, style })
   process.stdout.write(`${notes}\n`)
 }

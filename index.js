@@ -2,18 +2,28 @@
 // changelog: roll the "Unreleased" section into a dated release section, and extract
 // a release section as Markdown release notes (e.g. for a GitHub release).
 //
-// Two changelog formats are supported (see the "format" option, default "adoc"):
+// Two source formats are supported (see the "format" option, default "adoc"):
 //
 //   - "adoc": AsciiDoc, converted to Markdown via the optional "downdoc" dependency
-//   - "markdown": the native Keep a Changelog Markdown syntax, used as-is
+//   - "markdown": native Markdown, used as-is
 //
-// See lib/formats/adoc.js and lib/formats/markdown.js for the exact syntax each expects.
+// rollUnreleased() edits the changelog in its native syntax, since it writes back to the
+// original file (see lib/formats/adoc.js and lib/formats/markdown.js).
+//
+// extractReleaseNotes(), on the other hand, only reads the changelog, so both formats are
+// first converted to Markdown and then matched the same way, against a "style" describing
+// the exact heading syntax (a preset name or a custom style object — see
+// lib/heading-styles.js), since projects tend to spell the "Unreleased"/release headings
+// slightly differently. The style defaults to whatever downdoc/the format naturally
+// produces ("title-paren" for "adoc", "keepachangelog" for "markdown").
 
 import * as adocFormat from './lib/formats/adoc.js'
 import * as markdownFormat from './lib/formats/markdown.js'
+import { resolveStyle } from './lib/heading-styles.js'
 import { escapeRegExp } from './lib/util.js'
 
 const FORMATS = { adoc: adocFormat, markdown: markdownFormat }
+const DEFAULT_STYLE_BY_FORMAT = { adoc: 'title-paren', markdown: 'keepachangelog' }
 
 function resolveFormat(format) {
   const impl = FORMATS[format]
@@ -29,10 +39,11 @@ export async function convertToMarkdown(content, { format = 'adoc' } = {}) {
   return resolveFormat(format).toMarkdown(content)
 }
 
-// Rolls the "Unreleased" section into a dated "<version> (<releaseDate>)" section and
-// starts a fresh, empty "Unreleased" section above it.
-export function rollUnreleased(content, version, releaseDate, { format = 'adoc' } = {}) {
-  return resolveFormat(format).rollUnreleased(content, version, releaseDate)
+// Rolls the "Unreleased" section into a dated release heading and starts a fresh, empty
+// "Unreleased" section above it, in the changelog's native syntax. Extra options (e.g.
+// "style" and "suffix", see lib/heading-styles.js) are forwarded to the format implementation.
+export function rollUnreleased(content, version, releaseDate, { format = 'adoc', ...rest } = {}) {
+  return resolveFormat(format).rollUnreleased(content, version, releaseDate, rest)
 }
 
 // Splits a release section (already in Markdown) into a summary (intro paragraph before
@@ -73,11 +84,14 @@ export function formatReleaseNotes({
 }
 
 // Extracts a release section and formats it as Markdown release notes.
-export async function extractReleaseNotes(content, version, { author, previousTag, repoUrl, format = 'adoc' } = {}) {
-  const impl = resolveFormat(format)
+export async function extractReleaseNotes(
+  content,
+  version,
+  { author, previousTag, repoUrl, format = 'adoc', style = DEFAULT_STYLE_BY_FORMAT[format] } = {},
+) {
+  const markdown = await resolveFormat(format).toMarkdown(content)
   const escapedVersion = escapeRegExp(version)
-  const markdown = await impl.toMarkdown(content)
-  const match = markdown.match(impl.releaseHeaderRegex(escapedVersion))
+  const match = markdown.match(resolveStyle(style).releaseHeadingRegex(escapedVersion))
   if (!match) {
     throw new Error(`Release section for version "${version}" not found in changelog`)
   }

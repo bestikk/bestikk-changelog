@@ -12,6 +12,8 @@ Two formats are supported, selected with the `format` option (`adoc` or `markdow
 
 Converted to Markdown via https://github.com/asciidoctor/downdoc[downdoc], an optional dependency (see <<Optional downdoc dependency>>).
 
+Headings use the same `style` presets as the `markdown` format below (default `title-paren`), just with the AsciiDoc `==` marker instead of Markdown's level 2 marker — both are a "level 2" heading in their respective syntax.
+
 [source,asciidoc]
 ----
 = Project Changelog
@@ -34,9 +36,33 @@ Optional summary paragraph, used as the release notes summary.
 ...
 ----
 
-=== `markdown` (native Keep a Changelog Markdown, e.g. `CHANGELOG.md`)
+=== `markdown` (native Markdown, e.g. `CHANGELOG.md`)
 
-Used as-is, no conversion needed.
+Used as-is, no conversion needed. The exact heading syntax is configurable via the `style` option (a preset name or a custom style object — see `lib/heading-styles.js`), since projects tend to spell the "Unreleased"/release headings slightly differently. Category sections (e.g. "Added", "Fixed", shown as a plain level 3 heading below) always use the same syntax, whatever the style.
+
+`keepachangelog` (default):: Canonical {uri-keepachangelog}[Keep a Changelog] syntax.
++
+[source,text]
+----
+## [Unreleased]
+## [<version>] - <date>
+----
+
+`title-paren`:: e.g. https://github.com/ggrossetie/asciidoctor-emoji/blob/main/CHANGELOG.md[asciidoctor-emoji].
++
+[source,text]
+----
+## Unreleased
+## v<version> (<date>)
+----
+
+`title-paren-suffix`:: e.g. https://github.com/asciidoctor/asciidoctor-vscode/blob/main/CHANGELOG.md[asciidoctor-vscode], whose release heading also allows an optional "(qualifier)" and a free-form "- suffix" (only the latter is written back, via the "suffix" option).
++
+[source,text]
+----
+## Unreleased
+## <version> [(qualifier)] (<date>) [- suffix]
+----
 
 [source,markdown]
 ----
@@ -58,6 +84,20 @@ Optional summary paragraph, used as the release notes summary.
 
 ## [0.9.0] - 2023-12-01
 ...
+----
+
+A convention that doesn't fit any preset can be passed directly as a custom style object instead of a preset name:
+
+[source,js]
+----
+const style = {
+  unreleasedHeading: '## TBD',
+  releaseHeadingTemplate: (version, date) => `## Release ${version} — ${date}`,
+  releaseHeadingRegex: (escapedVersion) =>
+    new RegExp(`(?:^|\\n)## Release ${escapedVersion} — ([^\\n]+)\\n([\\s\\S]*?)(?=\\n## |$)`),
+}
+
+rollUnreleased(content, '1.0.0', '2024-01-15', { format: 'markdown', style })
 ----
 
 == Install
@@ -86,8 +126,8 @@ npx bestikk-changelog release 1.0.0 --file CHANGELOG.md
 npx bestikk-changelog notes 1.0.0 --file CHANGELOG.md
 ----
 
-Both commands accept `--file <path>` (default: `CHANGELOG.adoc`) and `--format <adoc|markdown>` (default: inferred from `--file`).
-`release` accepts `--date <YYYY-MM-DD>` (default: today).
+Both commands accept `--file <path>` (default: `CHANGELOG.adoc`), `--format <adoc|markdown>` (default: inferred from `--file`), and `--style <name>` (default `keepachangelog` for `markdown`, `title-paren` for `adoc`; see the styles above).
+`release` accepts `--date <YYYY-MM-DD>` (default: today) and `--suffix <text>` (appended to the release heading, used by the `title-paren-suffix` style, e.g. `--suffix "- @octocat"`).
 `notes` accepts `--author <name>` (default: `$GITHUB_ACTOR` or the tag's commit author), `--previous-tag <tag>` (default: the tag before `v<version>`), and `--repo-url <url>` (default: inferred from the `origin` git remote) — used to link the full diff between releases.
 
 == Library usage
@@ -110,7 +150,7 @@ const notes = await extractReleaseNotes(content, '1.0.0', {
 })
 ----
 
-Pass `{ format: 'markdown' }` as the last argument to work with a native Keep a Changelog Markdown file instead.
+Pass `{ format: 'markdown' }` as the last argument to work with a native Markdown file instead, and `{ format: 'markdown', style: 'title-paren' }` (or another preset, or a custom style object) to match its heading syntax.
 
 == License
 
