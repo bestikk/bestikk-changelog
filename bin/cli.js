@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // Usage:
-//   bestikk-changelog release <version> [--file CHANGELOG.adoc] [--date YYYY-MM-DD]
-//   bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--author name] [--previous-tag tag] [--repo-url url]
+//   bestikk-changelog release <version> [--file CHANGELOG.adoc] [--format adoc|markdown] [--date YYYY-MM-DD]
+//   bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown] [--author name] [--previous-tag tag] [--repo-url url]
+//
+// "--format" defaults to what "--file" looks like ("*.md"/"*.markdown" -> markdown, otherwise adoc).
 
 import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -10,6 +12,7 @@ import { extractReleaseNotes, rollUnreleased } from '../index.js'
 
 const OPTION_FLAGS = {
   '--file': 'file',
+  '--format': 'format',
   '--date': 'date',
   '--author': 'author',
   '--previous-tag': 'previousTag',
@@ -45,11 +48,15 @@ function inferRepoUrl() {
   }
 }
 
+function inferFormat(file) {
+  return /\.(md|markdown)$/i.test(file) ? 'markdown' : 'adoc'
+}
+
 function usageAndExit() {
   console.error(
     'Usage:\n' +
-      '  bestikk-changelog release <version> [--file CHANGELOG.adoc] [--date YYYY-MM-DD]\n' +
-      '  bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--author name] [--previous-tag tag] [--repo-url url]',
+      '  bestikk-changelog release <version> [--file CHANGELOG.adoc] [--format adoc|markdown] [--date YYYY-MM-DD]\n' +
+      '  bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown] [--author name] [--previous-tag tag] [--repo-url url]',
   )
   process.exit(9)
 }
@@ -65,11 +72,12 @@ try {
 if (!version || !['release', 'notes'].includes(command)) usageAndExit()
 
 const changelogPath = resolve(options.file)
+const format = options.format || inferFormat(options.file)
 const content = readFileSync(changelogPath, 'utf8')
 
 if (command === 'release') {
   const releaseDate = options.date || new Date().toISOString().slice(0, 10)
-  writeFileSync(changelogPath, rollUnreleased(content, version, releaseDate))
+  writeFileSync(changelogPath, rollUnreleased(content, version, releaseDate, { format }))
 } else {
   let author = options.author || process.env.GITHUB_ACTOR
   if (!author) {
@@ -88,5 +96,6 @@ if (command === 'release') {
     }
   }
   const repoUrl = options.repoUrl || inferRepoUrl()
-  process.stdout.write(`${extractReleaseNotes(content, version, { author, previousTag, repoUrl })}\n`)
+  const notes = await extractReleaseNotes(content, version, { author, previousTag, repoUrl, format })
+  process.stdout.write(`${notes}\n`)
 }

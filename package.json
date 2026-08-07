@@ -1,7 +1,7 @@
 {
   "name": "bestikk-changelog",
   "version": "1.0.0",
-  "description": "Manage a Keep a Changelog (AsciiDoc) CHANGELOG.adoc file: roll the Unreleased section into a dated release, and extract a release as Markdown release notes.",
+  "description": "Manage a Keep a Changelog changelog (AsciiDoc or Markdown): roll the Unreleased section into a dated release, and extract a release as Markdown release notes.",
   "type": "module",
   "main": "index.js",
   "bin": {
@@ -9,6 +9,7 @@
   },
   "files": [
     "index.js",
+    "lib/",
     "bin/"
   ],
   "engines": {
@@ -38,7 +39,7 @@
     "url": "https://github.com/bestikk/bestikk-changelog/issues"
   },
   "homepage": "https://github.com/bestikk/bestikk-changelog#readme",
-  "dependencies": {
+  "optionalDependencies": {
     "downdoc": "^1.1.0-stable"
   },
   "devDependencies": {

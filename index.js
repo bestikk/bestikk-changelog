@@ -1,48 +1,43 @@
 // bestikk-changelog — manage a Keep a Changelog (https://keepachangelog.com) style
-// CHANGELOG.adoc: roll the "Unreleased" section into a dated release section, and
-// extract a release section as Markdown release notes (via downdoc).
+// changelog: roll the "Unreleased" section into a dated release section, and extract
+// a release section as Markdown release notes (e.g. for a GitHub release).
 //
-// Changelog structure expected:
+// Two changelog formats are supported (see the "format" option, default "adoc"):
 //
-//   == Unreleased
+//   - "adoc": AsciiDoc, converted to Markdown via the optional "downdoc" dependency
+//   - "markdown": the native Keep a Changelog Markdown syntax, used as-is
 //
-//   == v1.2.3 (2024-01-15)
-//
-//   Optional summary paragraph.
-//
-//   === Added
-//
-//   * ...
-//
-//   === Fixed
-//
-//   * ...
+// See lib/formats/adoc.js and lib/formats/markdown.js for the exact syntax each expects.
 
-import downdoc from 'downdoc'
+import * as adocFormat from './lib/formats/adoc.js'
+import * as markdownFormat from './lib/formats/markdown.js'
+import { escapeRegExp } from './lib/util.js'
 
-const UNRELEASED_HEADING = '== Unreleased'
+const FORMATS = { adoc: adocFormat, markdown: markdownFormat }
 
-// Converts an AsciiDoc changelog to Markdown. The whole document is converted
-// at once (rather than an extracted section in isolation) so document-level
-// context — attribute references such as "{uri-repo}/issues/1857[#1857]" in
-// particular — resolves correctly.
-export function convertAsciidocToMarkdown(content) {
-  return downdoc(content)
-}
-
-// Rolls the "== Unreleased" section into "== v<version> (<releaseDate>)" and
-// starts a fresh, empty "== Unreleased" section above it.
-export function rollUnreleased(content, version, releaseDate) {
-  const unreleasedRegex = new RegExp(`^${UNRELEASED_HEADING}$`, 'm')
-  if (!unreleasedRegex.test(content)) {
-    throw new Error(`"${UNRELEASED_HEADING}" section not found in changelog`)
+function resolveFormat(format) {
+  const impl = FORMATS[format]
+  if (!impl) {
+    throw new Error(`Unsupported changelog format: "${format}" (expected one of: ${Object.keys(FORMATS).join(', ')})`)
   }
-  return content.replace(unreleasedRegex, `${UNRELEASED_HEADING}\n\n== v${version} (${releaseDate})`)
+  return impl
 }
 
-// Splits a release section (already converted to Markdown) into a summary
-// (intro paragraph before the first category) and the structured changelog
-// (the category sections themselves, e.g. "### Added").
+// Converts the whole changelog to Markdown. For "markdown", this is a no-op; for "adoc",
+// this lazily loads the optional "downdoc" dependency.
+export async function convertToMarkdown(content, { format = 'adoc' } = {}) {
+  return resolveFormat(format).toMarkdown(content)
+}
+
+// Rolls the "Unreleased" section into a dated "<version> (<releaseDate>)" section and
+// starts a fresh, empty "Unreleased" section above it.
+export function rollUnreleased(content, version, releaseDate, { format = 'adoc' } = {}) {
+  return resolveFormat(format).rollUnreleased(content, version, releaseDate)
+}
+
+// Splits a release section (already in Markdown) into a summary (intro paragraph before
+// the first category) and the structured changelog (the category sections themselves,
+// e.g. "### Added").
 export function splitChangelog(sectionContent) {
   const firstCategoryIdx = sectionContent.search(/^### /m)
   if (firstCategoryIdx === -1) {
@@ -77,14 +72,14 @@ export function formatReleaseNotes({
   return lines.join('\n').trimEnd()
 }
 
-// Extracts the "== v<version> (date)" section and formats it as Markdown release notes.
-export function extractReleaseNotes(content, version, { author, previousTag, repoUrl } = {}) {
-  const escapedVersion = version.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-  const markdown = convertAsciidocToMarkdown(content)
-  const headerRegex = new RegExp(`## v${escapedVersion} \\(([^)]+)\\)\\n([\\s\\S]*?)(?=\\n## |$)`)
-  const match = markdown.match(headerRegex)
+// Extracts a release section and formats it as Markdown release notes.
+export async function extractReleaseNotes(content, version, { author, previousTag, repoUrl, format = 'adoc' } = {}) {
+  const impl = resolveFormat(format)
+  const escapedVersion = escapeRegExp(version)
+  const markdown = await impl.toMarkdown(content)
+  const match = markdown.match(impl.releaseHeaderRegex(escapedVersion))
   if (!match) {
-    throw new Error(`Section "== v${version}" not found in changelog`)
+    throw new Error(`Release section for version "${version}" not found in changelog`)
   }
   const [, releaseDate, sectionContent] = match
   const { summary, changelog } = splitChangelog(sectionContent.trim())

@@ -13,6 +13,8 @@ Initial release.
 === Added
 
 * `release` and `notes` library functions and CLI commands to manage a Keep a Changelog (https://keepachangelog.com) style `CHANGELOG.adoc`: roll the `== Unreleased` section into a dated `== v<version> (<date>)` section, and extract a release section as Markdown release notes (via `downdoc`) suitable for a GitHub release
+* Support the native Keep a Changelog Markdown format (e.g. `CHANGELOG.md`) as an alternative to AsciiDoc, selected via the `format` option (`adoc`/`markdown`) or auto-detected by the CLI from the `--file` extension
+* Make `downdoc` an optional dependency, loaded lazily only when processing the `adoc` format, so a Markdown-only changelog doesn't require it
 
 === Infrastructure
 

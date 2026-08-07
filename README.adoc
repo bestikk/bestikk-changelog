@@ -2,9 +2,15 @@
 :uri-repo: https://github.com/bestikk/bestikk-changelog
 :uri-keepachangelog: https://keepachangelog.com/en/1.1.0/
 
-Manage a {uri-keepachangelog}[Keep a Changelog] style `CHANGELOG.adoc`: roll the `== Unreleased` section into a dated release, and extract a release section as Markdown release notes (via https://github.com/asciidoctor/downdoc[downdoc]) suitable for a GitHub release.
+Manage a {uri-keepachangelog}[Keep a Changelog] style changelog, in AsciiDoc or Markdown: roll the "Unreleased" section into a dated release, and extract a release section as Markdown release notes suitable for a GitHub release.
 
-== Changelog format
+== Changelog formats
+
+Two formats are supported, selected with the `format` option (`adoc` or `markdown`, default `adoc`) — the CLI infers it from the `--file` extension (`.md`/`.markdown` -> `markdown`, otherwise `adoc`).
+
+=== `adoc` (AsciiDoc, e.g. `CHANGELOG.adoc`)
+
+Converted to Markdown via https://github.com/asciidoctor/downdoc[downdoc], an optional dependency (see <<Optional downdoc dependency>>).
 
 [source,asciidoc]
 ----
@@ -28,12 +34,42 @@ Optional summary paragraph, used as the release notes summary.
 ...
 ----
 
+=== `markdown` (native Keep a Changelog Markdown, e.g. `CHANGELOG.md`)
+
+Used as-is, no conversion needed.
+
+[source,markdown]
+----
+# Project Changelog
+
+## [Unreleased]
+
+## [1.0.0] - 2024-01-15
+
+Optional summary paragraph, used as the release notes summary.
+
+### Added
+
+- A new feature
+
+### Fixed
+
+- A bug fix
+
+## [0.9.0] - 2023-12-01
+...
+----
+
 == Install
 
 [source,shell]
 ----
 npm install bestikk-changelog
 ----
+
+=== Optional downdoc dependency
+
+`downdoc` is listed as an `optionalDependencies` and only loaded when processing the `adoc` format, so a project that only uses a Markdown changelog doesn't need it. It is installed by default by `npm`/`npx`/`pnpm`/`yarn`; if it's missing (e.g. installed with `--omit=optional`) and the `adoc` format is used, an explicit error tells you to install it.
 
 == CLI usage
 
@@ -44,9 +80,13 @@ npx bestikk-changelog release 1.0.0
 
 # Print the "v1.0.0" section as Markdown release notes (for a GitHub release)
 npx bestikk-changelog notes 1.0.0
+
+# Same, for a Markdown changelog (format inferred from the .md extension)
+npx bestikk-changelog release 1.0.0 --file CHANGELOG.md
+npx bestikk-changelog notes 1.0.0 --file CHANGELOG.md
 ----
 
-Both commands accept `--file <path>` (default: `CHANGELOG.adoc`).
+Both commands accept `--file <path>` (default: `CHANGELOG.adoc`) and `--format <adoc|markdown>` (default: inferred from `--file`).
 `release` accepts `--date <YYYY-MM-DD>` (default: today).
 `notes` accepts `--author <name>` (default: `$GITHUB_ACTOR` or the tag's commit author), `--previous-tag <tag>` (default: the tag before `v<version>`), and `--repo-url <url>` (default: inferred from the `origin` git remote) — used to link the full diff between releases.
 
@@ -59,16 +99,18 @@ import { readFileSync, writeFileSync } from 'node:fs'
 
 const content = readFileSync('CHANGELOG.adoc', 'utf8')
 
-// Roll "Unreleased" into "v1.0.0 (2024-01-15)"
+// Roll "Unreleased" into "v1.0.0 (2024-01-15)" (format defaults to "adoc")
 writeFileSync('CHANGELOG.adoc', rollUnreleased(content, '1.0.0', '2024-01-15'))
 
 // Extract "v1.0.0" as Markdown release notes
-const notes = extractReleaseNotes(content, '1.0.0', {
+const notes = await extractReleaseNotes(content, '1.0.0', {
   author: 'octocat',
   previousTag: 'v0.9.0',
   repoUrl: 'https://github.com/example/example',
 })
 ----
+
+Pass `{ format: 'markdown' }` as the last argument to work with a native Keep a Changelog Markdown file instead.
 
 == License
 
