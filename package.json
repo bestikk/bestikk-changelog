@@ -1,11 +1,11 @@
 {
-  "name": "bestikk-changelog",
+  "name": "@bestikk/changelog",
   "version": "1.0.0",
   "description": "Manage a Keep a Changelog changelog (AsciiDoc or Markdown): roll the Unreleased section into a dated release, and extract a release as Markdown release notes.",
   "type": "module",
   "main": "index.js",
   "bin": {
-    "bestikk-changelog": "./bin/cli.js"
+    "bestikk-changelog": "bin/cli.js"
   },
   "files": [
     "index.js",
