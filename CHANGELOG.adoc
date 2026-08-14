@@ -6,6 +6,14 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 
 == Unreleased
 
+=== Changed
+
+* Publish under the `@bestikk/changelog` npm scope instead of the unscoped `bestikk-changelog` name; the CLI command is still `bestikk-changelog`
+
+=== Infrastructure
+
+* Convert `README.adoc` to `README.md` at publish time (via `downdoc`'s `--prepublish`/`--postpublish` lifecycle scripts), since npmjs.com doesn't render AsciiDoc; `README.adoc` remains the source of truth on GitHub
+
 == v1.0.0 (2026-08-07)
 
 Initial release.
