@@ -6,6 +6,8 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 
 == Unreleased
 
+== v1.0.1 (2026-08-14)
+
 === Changed
 
 * Publish under the `@bestikk/changelog` npm scope instead of the unscoped `bestikk-changelog` name; the CLI command is still `bestikk-changelog`
