@@ -19,7 +19,9 @@
     "test": "node --test",
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
-    "format": "biome format --write ."
+    "format": "biome format --write .",
+    "prepublishOnly": "downdoc --prepublish README.adoc",
+    "postpublish": "downdoc --postpublish README.adoc"
   },
   "repository": {
     "type": "git",
