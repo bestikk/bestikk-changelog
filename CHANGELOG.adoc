@@ -6,6 +6,11 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 
 == Unreleased
 
+=== Infrastructure
+
+* Make the GitHub repository public; npm provenance attestations require a public source repository, and publishing with `--provenance` was failing against the previously private repo
+* Bump `actions/checkout` and `actions/setup-node` to v7, and test against Node.js 20/22/24 instead of 18/20/22
+
 == v1.0.1 (2026-08-14)
 
 === Changed
