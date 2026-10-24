@@ -119,7 +119,17 @@ Optional summary paragraph, used as the release notes summary.
 ...
 ----
 
-NOTE: Keep a Changelog link reference definitions at the bottom of the file (`[1.0.0]: https://...`) are not updated by `release`, and end up in the release notes of the oldest release.
+Keep a Changelog link reference definitions at the bottom of the file are supported:
+
+[source,markdown]
+----
+[unreleased]: https://github.com/octocat/hello-world/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/octocat/hello-world/compare/v0.9.0...v1.0.0
+[#42]: https://github.com/octocat/hello-world/issues/42
+----
+
+* `release 1.1.0` updates the `[unreleased]` diff link to `compare/v1.1.0...HEAD`, and adds a `[1.1.0]: .../compare/v1.0.0...v1.1.0` definition below it. The new tag is `v`-prefixed if the previous one is. Without an `[unreleased]: .../compare/<tag>...HEAD` definition, the links are left untouched.
+* `notes` leaves the definitions out of the release sections, and appends the ones a release section refers to (e.g. `[#42]`) to its release notes, so reference-style links keep working on GitHub.
 
 == Heading styles
 

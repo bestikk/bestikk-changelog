@@ -19,10 +19,16 @@
 //
 // Both functions accept CRLF line endings (rollUnreleased() writes them back as-is), and a
 // "v"-prefixed version ("v1.2.3" is the same as "1.2.3").
+//
+// Markdown link reference definitions (e.g. Keep a Changelog's "[1.0.0]: <diff url>" at the
+// bottom of the file) are handled on both sides: rollUnreleased() rolls the "[unreleased]"
+// diff link, and extractReleaseNotes() carries over the definitions a release section uses
+// (see lib/link-references.js).
 
 import * as adocFormat from './lib/formats/adoc.js'
 import * as markdownFormat from './lib/formats/markdown.js'
 import { resolveStyle } from './lib/heading-styles.js'
+import { extractLinkReferenceDefinitions, referencedDefinitions } from './lib/link-references.js'
 import { escapeRegExp, maskFencedCodeBlocks, normalizeVersion, unmaskFencedCodeBlocks } from './lib/util.js'
 
 const FORMATS = { adoc: adocFormat, markdown: markdownFormat }
@@ -97,7 +103,9 @@ export function formatReleaseNotes({
   return lines.join('\n').trimEnd()
 }
 
-// Extracts a release section and formats it as Markdown release notes.
+// Extracts a release section and formats it as Markdown release notes. Link reference
+// definitions are taken out of the changelog first (so they don't end up in the last section),
+// and the ones the release section refers to (e.g. "[#42]") are appended to the notes.
 export async function extractReleaseNotes(
   content,
   version,
@@ -107,15 +115,14 @@ export async function extractReleaseNotes(
   const normalizedVersion = normalizeVersion(version)
   // Code samples are masked so a "## " or "### " line in a fenced code block can't be taken for
   // the end of the release section, or for a category heading (see lib/util.js)
-  const match = maskFencedCodeBlocks(markdown).match(
-    resolveStyle(style).releaseHeadingRegex(escapeRegExp(normalizedVersion)),
-  )
+  const { content: masked, definitions } = extractLinkReferenceDefinitions(maskFencedCodeBlocks(markdown))
+  const match = masked.match(resolveStyle(style).releaseHeadingRegex(escapeRegExp(normalizedVersion)))
   if (!match) {
     throw new Error(`Release section for version "${normalizedVersion}" not found in changelog`)
   }
   const [, releaseDate, sectionContent] = match
   const { summary, changelog } = splitChangelog(sectionContent.trim())
-  return formatReleaseNotes({
+  const notes = formatReleaseNotes({
     summary: unmaskFencedCodeBlocks(summary),
     date: releaseDate,
     author,
@@ -125,4 +132,6 @@ export async function extractReleaseNotes(
     repoUrl,
     publishedBy,
   })
+  const used = referencedDefinitions(sectionContent, definitions)
+  return used.length ? `${notes}\n\n${unmaskFencedCodeBlocks(used.map(({ line }) => line).join('\n'))}` : notes
 }

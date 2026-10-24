@@ -17,6 +17,7 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 * Omit the "Summary" (or "Changelog") section from the release notes when the release has no summary paragraph (or no category section), instead of rendering an empty section
 * Refuse to `release` a version that already has a release section, instead of adding a duplicate one
 * Accept a `v`-prefixed version (e.g. `release v1.0.0`), which used to produce a heading such as `== vv1.0.0 (...)`
+* Carry over the link reference definitions a release section refers to (e.g. `[#42]: https://...` at the bottom of a Markdown changelog) to its release notes, so reference-style links keep working; definitions are no longer included in the oldest release's notes
 * Infer the repository URL from an `origin` remote with a trailing slash (e.g. `https://github.com/owner/repo/`), which used to produce a broken "full diff" link
 * Support CRLF line endings: `notes` failed to find the release section with the `title-paren`/`title-paren-suffix` styles (and kept a trailing `\r` in the date with `keepachangelog`), and `release` inserted LF line endings into a CRLF file
 
@@ -24,6 +25,7 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 
 * Reposition the README as "Keep a Changelog for AsciiDoc, with Markdown release notes for GitHub", with a quick start and an example of generated release notes; Markdown changelogs are presented as a secondary format
 * Freeze the list of heading style presets (`keepachangelog`, `title-paren`, `title-paren-suffix`), and document the custom style object as an advanced, library-only escape hatch whose shape may change in a future major version
+* Roll the Keep a Changelog `[unreleased]: .../compare/<tag>...HEAD` diff link on `release`, and add a `[<version>]: .../compare/<previous tag>...<tag>` definition for the new release
 * Make the "Published by" line of the release notes configurable, via the `publishedBy` option or `--published-by` (still `GitHub` by default; an empty value omits the line)
 * Require Node.js 20 or later (`engines`), the versions actually tested; Node.js 18 is end-of-life
 * Parse CLI arguments with `node:util`'s `parseArgs()`: options now also accept the `--option=value` form and can be placed before the command, and `--help`/`-h` prints the usage
