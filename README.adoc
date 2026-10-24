@@ -129,6 +129,9 @@ npx bestikk-changelog notes 1.0.0 --file CHANGELOG.md
 Both commands accept `--file <path>` (default: `CHANGELOG.adoc`), `--format <adoc|markdown>` (default: inferred from `--file`), and `--style <name>` (default `keepachangelog` for `markdown`, `title-paren` for `adoc`; see the styles above).
 `release` accepts `--date <YYYY-MM-DD>` (default: today) and `--suffix <text>` (appended to the release heading, used by the `title-paren-suffix` style, e.g. `--suffix "- @octocat"`).
 `notes` accepts `--author <name>` (default: `$GITHUB_ACTOR` or the tag's commit author), `--previous-tag <tag>` (default: the tag before `v<version>`), and `--repo-url <url>` (default: inferred from the `origin` git remote) — used to link the full diff between releases.
+Options can be written as `--option value` or `--option=value`, anywhere on the command line; `--help` (`-h`) prints the usage.
+
+The CLI exits with `0` on success, `9` on invalid usage (unknown command or option, missing argument or option value — the usage is printed), and `1` on any other error (e.g. changelog file or section not found), reported as a one-line message on stderr.
 
 == Library usage
 

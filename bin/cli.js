@@ -8,40 +8,66 @@
 //                                      [--author name] [--previous-tag tag] [--repo-url url]
 //
 // "--format" defaults to what "--file" looks like ("*.md"/"*.markdown" -> markdown, otherwise
-// adoc). "--style" only applies to the "markdown" format and defaults to "keepachangelog";
-// see lib/formats/markdown-styles.js for what each preset expects.
+// adoc). "--style" defaults to "keepachangelog" for markdown and "title-paren" for adoc; see
+// lib/heading-styles.js for what each preset expects.
+//
+// Exit codes: 0 on success, 9 on invalid usage (bad command/option, usage printed), 1 on any
+// other error (e.g. changelog file or section not found), reported as a single-line message.
 
 import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { parseArgs as parseNodeArgs } from 'node:util'
 import { extractReleaseNotes, rollUnreleased } from '../index.js'
 
-const OPTION_FLAGS = {
-  '--file': 'file',
-  '--format': 'format',
-  '--style': 'style',
-  '--date': 'date',
-  '--suffix': 'suffix',
-  '--author': 'author',
-  '--previous-tag': 'previousTag',
-  '--repo-url': 'repoUrl',
+const USAGE =
+  'Usage:\n' +
+  '  bestikk-changelog release <version> [--file CHANGELOG.adoc] [--format adoc|markdown]\n' +
+  '                                       [--style keepachangelog|title-paren|title-paren-suffix]\n' +
+  '                                       [--date YYYY-MM-DD] [--suffix text]\n' +
+  '  bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown]\n' +
+  '                                     [--style keepachangelog|title-paren|title-paren-suffix]\n' +
+  '                                     [--author name] [--previous-tag tag] [--repo-url url]'
+
+const COMMANDS = ['release', 'notes']
+
+const OPTIONS = {
+  file: { type: 'string', default: 'CHANGELOG.adoc' },
+  format: { type: 'string' },
+  style: { type: 'string' },
+  date: { type: 'string' },
+  suffix: { type: 'string' },
+  author: { type: 'string' },
+  'previous-tag': { type: 'string' },
+  'repo-url': { type: 'string' },
+  help: { type: 'boolean', short: 'h' },
 }
 
+class UsageError extends Error {}
+
+// Strict parsing: unknown options and options missing their value (e.g. a trailing "--file",
+// or "--file --format md") are rejected instead of silently becoming undefined.
 function parseArgs(argv) {
-  const [command, version, ...rest] = argv
-  const options = { file: 'CHANGELOG.adoc' }
-  for (let i = 0; i < rest.length; i++) {
-    const key = OPTION_FLAGS[rest[i]]
-    if (!key) {
-      throw new Error(`Unknown option: ${rest[i]}`)
-    }
-    options[key] = rest[++i]
+  let parsed
+  try {
+    parsed = parseNodeArgs({ args: argv, options: OPTIONS, allowPositionals: true, strict: true })
+  } catch (err) {
+    throw new UsageError(err.message)
   }
-  return { command, version, options }
+  const { values, positionals } = parsed
+  if (values.help) return { help: true }
+  const [command, version, ...extra] = positionals
+  if (!COMMANDS.includes(command)) {
+    throw new UsageError(command ? `Unknown command: ${command}` : 'Missing command')
+  }
+  if (!version) throw new UsageError(`Missing <version> for the "${command}" command`)
+  if (extra.length) throw new UsageError(`Unexpected argument: ${extra[0]}`)
+  const { 'previous-tag': previousTag, 'repo-url': repoUrl, ...options } = values
+  return { command, version, options: { ...options, previousTag, repoUrl } }
 }
 
 function git(args) {
-  return execFileSync('git', args, { encoding: 'utf8' }).trim()
+  return execFileSync('git', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }).trim()
 }
 
 // Derives "https://github.com/<owner>/<repo>" from the "origin" remote, supporting
@@ -60,38 +86,30 @@ function inferFormat(file) {
   return /\.(md|markdown)$/i.test(file) ? 'markdown' : 'adoc'
 }
 
-function usageAndExit() {
-  console.error(
-    'Usage:\n' +
-      '  bestikk-changelog release <version> [--file CHANGELOG.adoc] [--format adoc|markdown]\n' +
-      '                                       [--style keepachangelog|title-paren|title-paren-suffix]\n' +
-      '                                       [--date YYYY-MM-DD] [--suffix text]\n' +
-      '  bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown]\n' +
-      '                                     [--style keepachangelog|title-paren|title-paren-suffix]\n' +
-      '                                     [--author name] [--previous-tag tag] [--repo-url url]',
-  )
-  process.exit(9)
+function readChangelog(changelogPath) {
+  try {
+    return readFileSync(changelogPath, 'utf8')
+  } catch (err) {
+    if (err.code === 'ENOENT') throw new Error(`Changelog file not found: ${changelogPath}`)
+    throw err
+  }
 }
 
-let command, version, options
-try {
-  ;({ command, version, options } = parseArgs(process.argv.slice(2)))
-} catch (err) {
-  console.error(err.message)
-  usageAndExit()
-}
+async function run(command, version, options) {
+  const changelogPath = resolve(options.file)
+  const format = options.format || inferFormat(options.file)
+  const style = options.style
+  const content = readChangelog(changelogPath)
 
-if (!version || !['release', 'notes'].includes(command)) usageAndExit()
+  if (command === 'release') {
+    const releaseDate = options.date || new Date().toISOString().slice(0, 10)
+    writeFileSync(
+      changelogPath,
+      rollUnreleased(content, version, releaseDate, { format, style, suffix: options.suffix }),
+    )
+    return
+  }
 
-const changelogPath = resolve(options.file)
-const format = options.format || inferFormat(options.file)
-const style = options.style
-const content = readFileSync(changelogPath, 'utf8')
-
-if (command === 'release') {
-  const releaseDate = options.date || new Date().toISOString().slice(0, 10)
-  writeFileSync(changelogPath, rollUnreleased(content, version, releaseDate, { format, style, suffix: options.suffix }))
-} else {
   let author = options.author || process.env.GITHUB_ACTOR
   if (!author) {
     try {
@@ -111,4 +129,21 @@ if (command === 'release') {
   const repoUrl = options.repoUrl || inferRepoUrl()
   const notes = await extractReleaseNotes(content, version, { author, previousTag, repoUrl, format, style })
   process.stdout.write(`${notes}\n`)
+}
+
+try {
+  const { help, command, version, options } = parseArgs(process.argv.slice(2))
+  if (help) {
+    console.log(USAGE)
+  } else {
+    await run(command, version, options)
+  }
+} catch (err) {
+  if (err instanceof UsageError) {
+    console.error(`bestikk-changelog: ${err.message}\n\n${USAGE}`)
+    process.exitCode = 9
+  } else {
+    console.error(`bestikk-changelog: ${err.message}`)
+    process.exitCode = 1
+  }
 }

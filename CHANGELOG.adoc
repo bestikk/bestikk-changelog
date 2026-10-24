@@ -11,6 +11,12 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 * Fix the `title-paren-suffix` style swallowing the first line of a release's summary paragraph when the release heading has no suffix
 * Forward the `suffix` option to the heading template for the `adoc` format too (it was silently ignored, e.g. with `--style title-paren-suffix --suffix "- @octocat"`)
 * Keep `$` patterns (e.g. `$&`) verbatim in the release heading written by `release`, instead of interpreting them as `String.prototype.replace()` replacement patterns
+* Reject a CLI option missing its value (e.g. a trailing `--file`, or `--file --format md`) with the usage, instead of crashing with a stack trace or silently ignoring it (`--date` fell back to today)
+* Report CLI errors (e.g. changelog file or section not found) as a one-line message with exit code `1`, instead of an uncaught exception's stack trace
+
+=== Changed
+
+* Parse CLI arguments with `node:util`'s `parseArgs()`: options now also accept the `--option=value` form and can be placed before the command, and `--help`/`-h` prints the usage
 
 == v1.0.2 (2026-08-14)
 
