@@ -25,6 +25,9 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 
 === Infrastructure
 
+* Release workflow: run on Node.js 24, whose bundled npm (>= 11.5.1) supports trusted publishing, instead of installing an unpinned `npm@latest` on top of Node.js 22; fail early if npm is too old
+* Release workflow: only allow releases from the `main` branch, and never run two releases concurrently
+* Test workflow: restrict the `GITHUB_TOKEN` to read-only access
 * Release workflow: set the version with `npm version` so `package-lock.json` is updated too (it was stuck at `1.0.0`), and push the release commit and tag only once the package is published, so a failed publish can simply be re-run
 
 == v1.0.2 (2026-08-14)
