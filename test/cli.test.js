@@ -72,6 +72,27 @@ test('notes infers the repository URL from an "origin" remote with a trailing sl
   assert.match(stdout, /\[full diff]\(https:\/\/github\.com\/octocat\/hello-world\/compare\/v0\.9\.0\.\.\.v1\.0\.0\)/)
 })
 
+test('release and notes accept custom heading templates', () => {
+  writeFileSync(join(cwd, 'CUSTOM.md'), '# Changelog\n\n## TBD\n\n### Added\n\n- Something\n')
+  const templates = ['--unreleased-heading', 'TBD', '--release-heading', 'Release {version} ({date})']
+  const release = cli('release', '2.0.0', '--file', 'CUSTOM.md', '--date', '2024-02-01', ...templates)
+  assert.equal(release.status, 0)
+  assert.equal(
+    readFileSync(join(cwd, 'CUSTOM.md'), 'utf8'),
+    '# Changelog\n\n## TBD\n\n## Release 2.0.0 (2024-02-01)\n\n### Added\n\n- Something\n',
+  )
+  const notes = cli('notes', '2.0.0', '--file', 'CUSTOM.md', ...templates)
+  assert.equal(notes.status, 0)
+  assert.match(notes.stdout, /Released on: 2024-02-01\n/)
+})
+
+test('reports an invalid release heading template as a one-line error with exit code 1', () => {
+  writeFileSync(join(cwd, 'INVALID.md'), '## Unreleased\n')
+  const { status, stderr } = cli('release', '1.0.0', '--file', 'INVALID.md', '--release-heading', 'v{version}')
+  assert.equal(status, 1)
+  assert.equal(stderr, 'bestikk-changelog: Release heading template "v{version}" must contain a "{date}" placeholder\n')
+})
+
 test('--help prints the usage and exits successfully', () => {
   const { status, stdout } = cli('--help')
   assert.equal(status, 0)
@@ -90,6 +111,16 @@ for (const [description, args, message] of [
   ['a missing command', [], /Missing command/],
   ['a missing version', ['release'], /Missing <version> for the "release" command/],
   ['an extra argument', ['release', '1.0.0', '2.0.0'], /Unexpected argument: 2\.0\.0/],
+  [
+    '--style with --release-heading',
+    ['notes', '1.0.0', '--style', 'title-paren', '--release-heading', '{version} {date}'],
+    /--style and --release-heading cannot be used together/,
+  ],
+  [
+    '--unreleased-heading without --release-heading',
+    ['release', '1.0.0', '--unreleased-heading', 'TBD'],
+    /--unreleased-heading requires --release-heading/,
+  ],
 ]) {
   test(`rejects ${description} with exit code 9 and the usage`, () => {
     const { status, stdout, stderr } = cli(...args)

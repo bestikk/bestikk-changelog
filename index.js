@@ -12,8 +12,8 @@
 //
 // extractReleaseNotes(), on the other hand, only reads the changelog, so both formats are
 // first converted to Markdown and then matched the same way, against a "style" describing
-// the exact heading syntax (a preset name or a custom style object — see
-// lib/heading-styles.js), since projects tend to spell the "Unreleased"/release headings
+// the exact heading syntax (a preset name or a { unreleased, release } template
+// object — see lib/heading-styles.js), since projects tend to spell the "Unreleased"/release headings
 // slightly differently. The style defaults to whatever downdoc/the format naturally
 // produces ("title-paren" for "adoc", "keepachangelog" for "markdown").
 //

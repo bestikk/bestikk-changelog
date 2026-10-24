@@ -6,6 +6,11 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 
 == Unreleased
 
+=== Added
+
+* Describe heading styles with declarative templates, e.g. `+{ unreleased: 'TBD', release: 'Release {version} — {date}' }+`, used to both write and read the headings so they can't drift apart; supported placeholders are `+{version}+`, `+{date}+`, and the optional `+{qualifier}+` (read only) and `+{suffix}+`. The presets are now defined as templates
+* `--release-heading <template>` and `--unreleased-heading <text>` CLI options, to use custom templates from the command line
+
 === Fixed
 
 * Fix the `title-paren-suffix` style swallowing the first line of a release's summary paragraph when the release heading has no suffix
@@ -29,6 +34,10 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 * Make the "Published by" line of the release notes configurable, via the `publishedBy` option or `--published-by` (still `GitHub` by default; an empty value omits the line)
 * Require Node.js 20 or later (`engines`), the versions actually tested; Node.js 18 is end-of-life
 * Parse CLI arguments with `node:util`'s `parseArgs()`: options now also accept the `--option=value` form and can be placed before the command, and `--help`/`-h` prints the usage
+
+=== Deprecated
+
+* The custom style object with `unreleasedHeading`, `releaseHeadingTemplate` and `releaseHeadingRegex` functions, superseded by templates; it now emits a `DeprecationWarning` (`BESTIKK_CHANGELOG_DEP001`), and will be removed in the next major version
 
 === Infrastructure
 
