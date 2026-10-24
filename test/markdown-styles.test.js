@@ -110,6 +110,30 @@ test('title-paren-suffix: extractReleaseNotes matches a release with a "(pre-rel
   assert.match(notes, /siteManifestPath/)
 })
 
+test('title-paren-suffix: extractReleaseNotes keeps the summary paragraph below a heading without suffix', async () => {
+  const content = '## Unreleased\n\n## 1.0.0 (2024-01-15)\n\nSummary of the release.\n\n### Features\n\n* Something\n'
+  const notes = await extractReleaseNotes(content, '1.0.0', { format, style: 'title-paren-suffix' })
+  assert.match(notes, /## Summary\n\nSummary of the release\.\n/)
+  assert.match(notes, /Released on: 2024-01-15/)
+})
+
+test('title-paren-suffix: extractReleaseNotes keeps the summary paragraph below a heading with a suffix', async () => {
+  const content =
+    '## Unreleased\n\n## 1.0.0 (pre-release) (2024-01-15) - @octocat\n\nSummary of the release.\n\n### Features\n\n* Something\n'
+  const notes = await extractReleaseNotes(content, '1.0.0', { format, style: 'title-paren-suffix' })
+  assert.match(notes, /## Summary\n\nSummary of the release\.\n/)
+  assert.match(notes, /Released on: 2024-01-15/)
+})
+
+test('rollUnreleased keeps "$" patterns in the suffix verbatim', () => {
+  const result = rollUnreleased('## Unreleased\n', '1.0.0', '2024-01-15', {
+    format,
+    style: 'title-paren-suffix',
+    suffix: "- $& $' $$",
+  })
+  assert.equal(result, "## Unreleased\n\n## 1.0.0 (2024-01-15) - $& $' $$\n")
+})
+
 test('extractReleaseNotes rejects an unsupported markdown style', async () => {
   await assert.rejects(
     () => extractReleaseNotes('## Unreleased\n', '1.0.0', { format, style: 'yaml-frontmatter' }),

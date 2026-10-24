@@ -24,6 +24,12 @@ test('rollUnreleased accepts a different style, reusing the "==" marker instead 
   assert.equal(result, '= Changelog\n\n== [Unreleased]\n\n== [1.0.0] - 2024-01-15\n\n=== Added\n\n* Something\n')
 })
 
+test('rollUnreleased forwards the suffix to the style, e.g. "title-paren-suffix"', () => {
+  const content = '= Changelog\n\n== Unreleased\n\n=== Added\n\n* Something\n'
+  const result = rollUnreleased(content, '1.0.0', '2024-01-15', { style: 'title-paren-suffix', suffix: '- @octocat' })
+  assert.equal(result, '= Changelog\n\n== Unreleased\n\n== 1.0.0 (2024-01-15) - @octocat\n\n=== Added\n\n* Something\n')
+})
+
 test('extractReleaseNotes extracts and formats a release section as Markdown', async () => {
   const content = `= Project Changelog
 :uri-repo: https://github.com/example/example
