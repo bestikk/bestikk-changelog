@@ -1,7 +1,7 @@
 {
   "name": "@bestikk/changelog",
   "version": "1.0.2",
-  "description": "Manage a Keep a Changelog changelog (AsciiDoc or Markdown): roll the Unreleased section into a dated release, and extract a release as Markdown release notes.",
+  "description": "Keep a Changelog for AsciiDoc, with Markdown release notes for GitHub: roll the Unreleased section into a dated release, and extract a release as Markdown release notes. Markdown changelogs are supported too.",
   "type": "module",
   "main": "index.js",
   "bin": {
@@ -30,7 +30,11 @@
   "keywords": [
     "changelog",
     "keepachangelog",
+    "keep-a-changelog",
     "asciidoc",
+    "markdown",
+    "release-notes",
+    "github-release",
     "downdoc",
     "release",
     "cli"
