@@ -72,7 +72,8 @@ export function splitChangelog(sectionContent) {
 
 // Formats a release's summary and changelog as GitHub release notes (Markdown).
 // "repoUrl" and "previousTag" are optional; when both are present, a "full diff" link is added.
-// The "Summary" and "Changelog" sections are omitted when empty.
+// The "Summary" and "Changelog" sections are omitted when empty. "publishedBy" defaults to
+// "GitHub"; pass an empty string (or null) to omit the "Published by" line.
 export function formatReleaseNotes({
   summary,
   date,
@@ -81,12 +82,13 @@ export function formatReleaseNotes({
   currentTag,
   changelog,
   repoUrl,
+  publishedBy = 'GitHub',
   footer = '',
 }) {
   const lines = summary ? ['## Summary', '', summary, ''] : []
   lines.push('## Release meta', '', `Released on: ${date}`)
   if (author) lines.push(`Released by: ${author}`)
-  lines.push('Published by: GitHub')
+  if (publishedBy) lines.push(`Published by: ${publishedBy}`)
   if (repoUrl && previousTag) {
     lines.push('', `Logs: [full diff](${repoUrl}/compare/${previousTag}...${currentTag})`)
   }
@@ -99,7 +101,7 @@ export function formatReleaseNotes({
 export async function extractReleaseNotes(
   content,
   version,
-  { author, previousTag, repoUrl, format = 'adoc', style = DEFAULT_STYLE_BY_FORMAT[format] } = {},
+  { author, previousTag, repoUrl, publishedBy, format = 'adoc', style = DEFAULT_STYLE_BY_FORMAT[format] } = {},
 ) {
   const markdown = await resolveFormat(format).toMarkdown(toLf(content))
   const normalizedVersion = normalizeVersion(version)
@@ -121,5 +123,6 @@ export async function extractReleaseNotes(
     currentTag: `v${normalizedVersion}`,
     changelog: unmaskFencedCodeBlocks(changelog),
     repoUrl,
+    publishedBy,
   })
 }
