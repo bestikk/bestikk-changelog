@@ -6,6 +6,7 @@
 //   bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown]
 //                                      [--style keepachangelog|title-paren|title-paren-suffix]
 //                                      [--author name] [--previous-tag tag] [--repo-url url]
+//                                      [--published-by text]
 //
 // "--format" defaults to what "--file" looks like ("*.md"/"*.markdown" -> markdown, otherwise
 // adoc). "--style" defaults to "keepachangelog" for markdown and "title-paren" for adoc; see
@@ -28,7 +29,8 @@ const USAGE =
   '                                       [--date YYYY-MM-DD] [--suffix text]\n' +
   '  bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown]\n' +
   '                                     [--style keepachangelog|title-paren|title-paren-suffix]\n' +
-  '                                     [--author name] [--previous-tag tag] [--repo-url url]'
+  '                                     [--author name] [--previous-tag tag] [--repo-url url]\n' +
+  '                                     [--published-by text]'
 
 const COMMANDS = ['release', 'notes']
 
@@ -41,6 +43,7 @@ const OPTIONS = {
   author: { type: 'string' },
   'previous-tag': { type: 'string' },
   'repo-url': { type: 'string' },
+  'published-by': { type: 'string' },
   help: { type: 'boolean', short: 'h' },
 }
 
@@ -63,9 +66,9 @@ function parseArgs(argv) {
   }
   if (!version) throw new UsageError(`Missing <version> for the "${command}" command`)
   if (extra.length) throw new UsageError(`Unexpected argument: ${extra[0]}`)
-  const { 'previous-tag': previousTag, 'repo-url': repoUrl, ...options } = values
+  const { 'previous-tag': previousTag, 'repo-url': repoUrl, 'published-by': publishedBy, ...options } = values
   // Normalized here too, since it's also used to look up the "v<version>" git tag
-  return { command, version: normalizeVersion(version), options: { ...options, previousTag, repoUrl } }
+  return { command, version: normalizeVersion(version), options: { ...options, previousTag, repoUrl, publishedBy } }
 }
 
 function git(args) {
@@ -73,11 +76,12 @@ function git(args) {
 }
 
 // Derives "https://github.com/<owner>/<repo>" from the "origin" remote, supporting
-// both SSH ("git@github.com:owner/repo.git") and HTTPS remote URL forms.
+// both SSH ("git@github.com:owner/repo.git") and HTTPS remote URL forms, with or without
+// a ".git" extension and a trailing slash.
 function inferRepoUrl() {
   try {
     const remote = git(['remote', 'get-url', 'origin'])
-    const match = remote.match(/github\.com[:/]([^/]+)\/(.+?)(\.git)?$/)
+    const match = remote.match(/github\.com[:/]([^/]+)\/([^/]+?)(?:\.git)?\/?$/)
     return match ? `https://github.com/${match[1]}/${match[2]}` : undefined
   } catch {
     return undefined
@@ -129,7 +133,14 @@ async function run(command, version, options) {
     }
   }
   const repoUrl = options.repoUrl || inferRepoUrl()
-  const notes = await extractReleaseNotes(content, version, { author, previousTag, repoUrl, format, style })
+  const notes = await extractReleaseNotes(content, version, {
+    author,
+    previousTag,
+    repoUrl,
+    publishedBy: options.publishedBy,
+    format,
+    style,
+  })
   process.stdout.write(`${notes}\n`)
 }
 

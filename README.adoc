@@ -169,6 +169,8 @@ The regex always matches against Markdown (an AsciiDoc changelog is converted fi
 
 == Install
 
+Node.js 20 or later is required.
+
 [source,shell]
 ----
 npm install --save-dev @bestikk/changelog
@@ -186,6 +188,7 @@ bestikk-changelog release <version> [--file CHANGELOG.adoc] [--format adoc|markd
 bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown]
                                   [--style keepachangelog|title-paren|title-paren-suffix]
                                   [--author name] [--previous-tag tag] [--repo-url url]
+                                  [--published-by text]
 ----
 
 Both commands accept `--file <path>` (default: `CHANGELOG.adoc`), `--format <adoc|markdown>` (default: inferred from `--file`), and `--style <name>` (default: `title-paren` for `adoc`, `keepachangelog` for `markdown`).
@@ -196,7 +199,8 @@ Both commands accept `--file <path>` (default: `CHANGELOG.adoc`), `--format <ado
 
 * `--author <name>`: defaults to `$GITHUB_ACTOR`, or the author of the `v<version>` tag's commit;
 * `--previous-tag <tag>`: defaults to the tag before `v<version>`;
-* `--repo-url <url>`: defaults to the GitHub URL of the `origin` git remote.
+* `--repo-url <url>`: defaults to the GitHub URL of the `origin` git remote;
+* `--published-by <text>`: the "Published by" line of the release notes, defaults to `GitHub`; an empty value (`--published-by=`) omits the line.
 
 The previous tag and the repository URL are used to link the full diff between releases.
 
@@ -224,7 +228,7 @@ const notes = await extractReleaseNotes(content, '1.0.0', {
 })
 ----
 
-Both functions take an optional last argument with `format` (`adoc` or `markdown`), `style` (a preset name or a custom style object), and, for `rollUnreleased`, `suffix`.
+Both functions take an optional last argument with `format` (`adoc` or `markdown`), `style` (a preset name or a custom style object), and, for `rollUnreleased`, `suffix`. `extractReleaseNotes` also accepts `publishedBy` (defaults to `'GitHub'`; an empty string or `null` omits the "Published by" line).
 
 == Behavior notes
 

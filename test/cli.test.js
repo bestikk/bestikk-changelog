@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { execFileSync, spawnSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { after, before, test } from 'node:test'
@@ -21,8 +21,12 @@ after(() => {
 // Runs the CLI outside of any git repository, with a deterministic author, so the git-based
 // inference (author, previous tag, repo URL) can't leak the host environment into the output.
 function cli(...args) {
+  return cliIn(cwd, ...args)
+}
+
+function cliIn(dir, ...args) {
   return spawnSync(process.execPath, [CLI, ...args], {
-    cwd,
+    cwd: dir,
     encoding: 'utf8',
     env: { ...process.env, GITHUB_ACTOR: 'octocat', GIT_CEILING_DIRECTORIES: tmpdir() },
   })
@@ -45,6 +49,27 @@ test('notes accepts "--option=value" and options before the command', () => {
   assert.equal(status, 0)
   assert.match(stdout, /Released on: 2024-01-15\nReleased by: octocat/)
   assert.match(stdout, /### Added\n\n- Something/)
+})
+
+test('notes accepts "--published-by", and omits the line when it is empty', () => {
+  writeFileSync(join(cwd, 'PUBLISHED.md'), '## [1.0.0] - 2024-01-15\n\n### Added\n\n- Something\n')
+  const custom = cli('notes', '1.0.0', '--file', 'PUBLISHED.md', '--published-by', 'GitLab CI')
+  assert.equal(custom.status, 0)
+  assert.match(custom.stdout, /\nPublished by: GitLab CI\n/)
+  const omitted = cli('notes', '1.0.0', '--file', 'PUBLISHED.md', '--published-by=')
+  assert.equal(omitted.status, 0)
+  assert.doesNotMatch(omitted.stdout, /Published by/)
+})
+
+test('notes infers the repository URL from an "origin" remote with a trailing slash', () => {
+  const repo = join(cwd, 'repo')
+  mkdirSync(repo)
+  execFileSync('git', ['init', '-q'], { cwd: repo })
+  execFileSync('git', ['remote', 'add', 'origin', 'https://github.com/octocat/hello-world.git/'], { cwd: repo })
+  writeFileSync(join(repo, 'CHANGELOG.md'), '## [1.0.0] - 2024-01-15\n\n### Added\n\n- Something\n')
+  const { status, stdout } = cliIn(repo, 'notes', '1.0.0', '--file', 'CHANGELOG.md', '--previous-tag', 'v0.9.0')
+  assert.equal(status, 0)
+  assert.match(stdout, /\[full diff]\(https:\/\/github\.com\/octocat\/hello-world\/compare\/v0\.9\.0\.\.\.v1\.0\.0\)/)
 })
 
 test('--help prints the usage and exits successfully', () => {

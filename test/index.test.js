@@ -39,6 +39,27 @@ test('formatReleaseNotes omits the diff link when repoUrl is missing', () => {
   assert.doesNotMatch(notes, /full diff/)
 })
 
+test('formatReleaseNotes renders "Published by: GitHub" by default', () => {
+  const notes = formatReleaseNotes({ summary: 'Summary.', date: '2024-01-15', currentTag: 'v1.0.0', changelog: '' })
+  assert.match(notes, /\nPublished by: GitHub$/)
+})
+
+test('formatReleaseNotes accepts a custom "publishedBy", or omits the line when empty', () => {
+  const base = { summary: 'Summary.', date: '2024-01-15', author: 'octocat', currentTag: 'v1.0.0', changelog: '' }
+  assert.match(formatReleaseNotes({ ...base, publishedBy: 'GitLab CI' }), /\nPublished by: GitLab CI$/)
+  for (const publishedBy of ['', null]) {
+    const notes = formatReleaseNotes({ ...base, publishedBy })
+    assert.doesNotMatch(notes, /Published by/)
+    assert.match(notes, /Released by: octocat$/)
+  }
+})
+
+test('extractReleaseNotes forwards "publishedBy"', async () => {
+  const content = '## [1.0.0] - 2024-01-15\n\n### Added\n\n- Something\n'
+  const notes = await extractReleaseNotes(content, '1.0.0', { format: 'markdown', publishedBy: 'Jenkins' })
+  assert.match(notes, /Published by: Jenkins\n/)
+})
+
 test('rollUnreleased rejects an unsupported format', () => {
   assert.throws(
     () => rollUnreleased('== Unreleased\n', '1.0.0', '2024-01-15', { format: 'yaml' }),
