@@ -6,6 +6,8 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 
 == Unreleased
 
+== v1.1.0 (2026-10-24)
+
 === Added
 
 * Describe heading styles with declarative templates, e.g. `+{ unreleased: 'TBD', release: 'Release {version} — {date}' }+`, used to both write and read the headings so they can't drift apart; supported placeholders are `+{version}+`, `+{date}+`, and the optional `+{qualifier}+` (read only) and `+{suffix}+`. The presets are now defined as templates
