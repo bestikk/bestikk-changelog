@@ -1,68 +1,105 @@
 = bestikk-changelog
 :uri-repo: https://github.com/bestikk/bestikk-changelog
 :uri-keepachangelog: https://keepachangelog.com/en/1.1.0/
+:uri-downdoc: https://github.com/asciidoctor/downdoc
 
-Manage a {uri-keepachangelog}[Keep a Changelog] style changelog, in AsciiDoc or Markdown: roll the "Unreleased" section into a dated release, and extract a release section as Markdown release notes suitable for a GitHub release.
+{uri-keepachangelog}[Keep a Changelog] for AsciiDoc, with Markdown release notes for GitHub.
 
-== Changelog formats
+Keep your changelog in AsciiDoc (`CHANGELOG.adoc`), and let bestikk-changelog handle the two chores of a release:
 
-Two formats are supported, selected with the `format` option (`adoc` or `markdown`, default `adoc`) — the CLI infers it from the `--file` extension (`.md`/`.markdown` -> `markdown`, otherwise `adoc`).
+* `release`: roll the "Unreleased" section into a dated release section, and start a fresh, empty "Unreleased" section above it;
+* `notes`: extract a release section as Markdown release notes, ready to be used as a GitHub release body.
 
-=== `adoc` (AsciiDoc, e.g. `CHANGELOG.adoc`)
+GitHub releases only render Markdown, so the changelog is converted with {uri-downdoc}[downdoc]. The whole document is converted at once, so document attributes (e.g. `+{uri-repo}/issues/42[#42]+`) resolve in the release notes as they do in the changelog.
 
-Converted to Markdown via https://github.com/asciidoctor/downdoc[downdoc], an optional dependency (see <<Optional downdoc dependency>>).
+Markdown changelogs (`CHANGELOG.md`) are supported too, see <<Markdown changelogs>>. This is mostly useful to manage AsciiDoc and Markdown projects with the same tool.
 
-Headings use the same `style` presets as the `markdown` format below (default `title-paren`), just with the AsciiDoc `==` marker instead of Markdown's level 2 marker — both are a "level 2" heading in their respective syntax.
+== Quick start
+
+[source,shell]
+----
+npm install --save-dev @bestikk/changelog
+
+# Roll the "Unreleased" section of CHANGELOG.adoc into "v1.0.0 (<today>)"
+npx bestikk-changelog release 1.0.0
+
+# Print the "v1.0.0" section as Markdown release notes
+npx bestikk-changelog notes 1.0.0 > release-notes.md
+gh release create v1.0.0 --notes-file release-notes.md
+----
+
+This project releases itself that way: see its {uri-repo}/blob/main/.github/workflows/release.yml[release workflow].
+
+== AsciiDoc changelog
 
 [source,asciidoc]
 ----
 = Project Changelog
+:uri-repo: https://github.com/octocat/hello-world
 
 == Unreleased
 
 == v1.0.0 (2024-01-15)
 
-Optional summary paragraph, used as the release notes summary.
+First stable release.
 
 === Added
 
-* A new feature
+* Export to PDF ({uri-repo}/issues/42[#42])
 
 === Fixed
 
-* A bug fix
+* Crash on empty input
 
 == v0.9.0 (2023-12-01)
 ...
 ----
 
-=== `markdown` (native Markdown, e.g. `CHANGELOG.md`)
+* `== Unreleased` collects the changes until the next release.
+* `== v<version> (<date>)` is a release section. This is the default heading style (`title-paren`); see <<Heading styles>> for the alternatives.
+* An optional paragraph before the first category becomes the release notes summary.
+* Category sections (`=== Added`, `=== Fixed`, ...) are free-form, and copied as-is to the release notes.
 
-Used as-is, no conversion needed. The exact heading syntax is configurable via the `style` option (a preset name or a custom style object — see `lib/heading-styles.js`), since projects tend to spell the "Unreleased"/release headings slightly differently. Category sections (e.g. "Added", "Fixed", shown as a plain level 3 heading below) always use the same syntax, whatever the style.
+`notes 1.0.0` outputs:
 
-`keepachangelog` (default):: Canonical {uri-keepachangelog}[Keep a Changelog] syntax.
-+
-[source,text]
+[source,markdown]
 ----
-## [Unreleased]
-## [<version>] - <date>
+## Summary
+
+First stable release.
+
+## Release meta
+
+Released on: 2024-01-15
+Released by: octocat
+Published by: GitHub
+
+Logs: [full diff](https://github.com/octocat/hello-world/compare/v0.9.0...v1.0.0)
+
+## Changelog
+
+### Added
+
+* Export to PDF ([#42](https://github.com/octocat/hello-world/issues/42))
+
+### Fixed
+
+* Crash on empty input
 ----
 
-`title-paren`:: e.g. https://github.com/ggrossetie/asciidoctor-emoji/blob/main/CHANGELOG.md[asciidoctor-emoji].
-+
-[source,text]
+The "Summary" section is omitted when the release has no summary paragraph. The "full diff" link requires both a previous tag and a repository URL, inferred from git when not given (see <<CLI usage>>).
+
+== Markdown changelogs
+
+A Markdown changelog is used as-is, without conversion, and is selected with the `markdown` format. The CLI infers the format from the `--file` extension: `.md`/`.markdown` is `markdown`, anything else is `adoc`.
+
+[source,shell]
 ----
-## Unreleased
-## v<version> (<date>)
+npx bestikk-changelog release 1.0.0 --file CHANGELOG.md
+npx bestikk-changelog notes 1.0.0 --file CHANGELOG.md
 ----
 
-`title-paren-suffix`:: e.g. https://github.com/asciidoctor/asciidoctor-vscode/blob/main/CHANGELOG.md[asciidoctor-vscode], whose release heading also allows an optional "(qualifier)" and a free-form "- suffix" (only the latter is written back, via the "suffix" option).
-+
-[source,text]
-----
-## Unreleased
-## <version> [(qualifier)] (<date>) [- suffix]
-----
+Its default heading style is the canonical Keep a Changelog syntax (`keepachangelog`):
 
 [source,markdown]
 ----
@@ -78,15 +115,43 @@ Optional summary paragraph, used as the release notes summary.
 
 - A new feature
 
-### Fixed
-
-- A bug fix
-
 ## [0.9.0] - 2023-12-01
 ...
 ----
 
-A convention that doesn't fit any preset can be passed directly as a custom style object instead of a preset name:
+NOTE: Keep a Changelog link reference definitions at the bottom of the file (`[1.0.0]: https://...`) are not updated by `release`, and end up in the release notes of the oldest release.
+
+== Heading styles
+
+The `style` option selects how the "Unreleased" and release headings are spelled. The same presets apply to both formats: an AsciiDoc changelog uses the `==` marker where a Markdown changelog uses `##`.
+
+`title-paren` (default for `adoc`):: e.g. https://github.com/ggrossetie/asciidoctor-emoji/blob/main/CHANGELOG.md[asciidoctor-emoji].
++
+[source,text]
+----
+== Unreleased
+== v<version> (<date>)
+----
+
+`keepachangelog` (default for `markdown`):: Canonical {uri-keepachangelog}[Keep a Changelog] syntax.
++
+[source,text]
+----
+== [Unreleased]
+== [<version>] - <date>
+----
+
+`title-paren-suffix`:: e.g. https://github.com/asciidoctor/asciidoctor-vscode/blob/main/CHANGELOG.md[asciidoctor-vscode]. The release heading may also have a "(qualifier)" and a free-form suffix. Both are recognized when reading, but only the suffix is written, via the `suffix` option (e.g. `--suffix "- @octocat"`).
++
+[source,text]
+----
+== Unreleased
+== <version> [(qualifier)] (<date>) [suffix]
+----
+
+The list of presets is frozen: new conventions won't be added as presets.
+
+For a convention that doesn't fit any preset, the library (not the CLI) also accepts a custom style object. It is an advanced escape hatch: its release heading template and regex must be kept consistent by hand, and its shape may change in a future major version.
 
 [source,js]
 ----
@@ -100,38 +165,44 @@ const style = {
 rollUnreleased(content, '1.0.0', '2024-01-15', { format: 'markdown', style })
 ----
 
+The regex always matches against Markdown (an AsciiDoc changelog is converted first), so it uses `##` whatever the format.
+
 == Install
 
 [source,shell]
 ----
-npm install @bestikk/changelog
+npm install --save-dev @bestikk/changelog
 ----
 
-=== Optional downdoc dependency
-
-`downdoc` is listed as an `optionalDependencies` and only loaded when processing the `adoc` format, so a project that only uses a Markdown changelog doesn't need it. It is installed by default by `npm`/`npx`/`pnpm`/`yarn`; if it's missing (e.g. installed with `--omit=optional`) and the `adoc` format is used, an explicit error tells you to install it.
+`downdoc`, which converts AsciiDoc to Markdown, is an optional dependency. It is installed by default by `npm`, `npx`, `pnpm` and `yarn`, and only loaded for an AsciiDoc changelog. If it's missing (e.g. installed with `--omit=optional`), processing an AsciiDoc changelog fails with an error telling you to install it.
 
 == CLI usage
 
-[source,shell]
+[source,text]
 ----
-# Roll the "Unreleased" section into a dated "v1.0.0" section
-npx bestikk-changelog release 1.0.0
-
-# Print the "v1.0.0" section as Markdown release notes (for a GitHub release)
-npx bestikk-changelog notes 1.0.0
-
-# Same, for a Markdown changelog (format inferred from the .md extension)
-npx bestikk-changelog release 1.0.0 --file CHANGELOG.md
-npx bestikk-changelog notes 1.0.0 --file CHANGELOG.md
+bestikk-changelog release <version> [--file CHANGELOG.adoc] [--format adoc|markdown]
+                                    [--style keepachangelog|title-paren|title-paren-suffix]
+                                    [--date YYYY-MM-DD] [--suffix text]
+bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown]
+                                  [--style keepachangelog|title-paren|title-paren-suffix]
+                                  [--author name] [--previous-tag tag] [--repo-url url]
 ----
 
-Both commands accept `--file <path>` (default: `CHANGELOG.adoc`), `--format <adoc|markdown>` (default: inferred from `--file`), and `--style <name>` (default `keepachangelog` for `markdown`, `title-paren` for `adoc`; see the styles above).
-`release` accepts `--date <YYYY-MM-DD>` (default: today) and `--suffix <text>` (appended to the release heading, used by the `title-paren-suffix` style, e.g. `--suffix "- @octocat"`).
-`notes` accepts `--author <name>` (default: `$GITHUB_ACTOR` or the tag's commit author), `--previous-tag <tag>` (default: the tag before `v<version>`), and `--repo-url <url>` (default: inferred from the `origin` git remote) — used to link the full diff between releases.
-Options can be written as `--option value` or `--option=value`, anywhere on the command line; `--help` (`-h`) prints the usage.
+Both commands accept `--file <path>` (default: `CHANGELOG.adoc`), `--format <adoc|markdown>` (default: inferred from `--file`), and `--style <name>` (default: `title-paren` for `adoc`, `keepachangelog` for `markdown`).
 
-The CLI exits with `0` on success, `9` on invalid usage (unknown command or option, missing argument or option value — the usage is printed), and `1` on any other error (e.g. changelog file or section not found), reported as a one-line message on stderr.
+`release` accepts `--date <YYYY-MM-DD>` (default: today) and `--suffix <text>` (appended to the release heading by the `title-paren-suffix` style).
+
+`notes` accepts:
+
+* `--author <name>`: defaults to `$GITHUB_ACTOR`, or the author of the `v<version>` tag's commit;
+* `--previous-tag <tag>`: defaults to the tag before `v<version>`;
+* `--repo-url <url>`: defaults to the GitHub URL of the `origin` git remote.
+
+The previous tag and the repository URL are used to link the full diff between releases.
+
+Options can be written as `--option value` or `--option=value`, anywhere on the command line. `--help` (`-h`) prints the usage.
+
+The CLI exits with `0` on success, and with `9` on invalid usage (unknown command or option, missing argument or option value), after printing the usage. Any other error (e.g. changelog file or section not found) is reported as a one-line message on stderr, with exit code `1`.
 
 == Library usage
 
@@ -142,26 +213,25 @@ import { readFileSync, writeFileSync } from 'node:fs'
 
 const content = readFileSync('CHANGELOG.adoc', 'utf8')
 
-// Roll "Unreleased" into "v1.0.0 (2024-01-15)" (format defaults to "adoc")
+// Roll "Unreleased" into "v1.0.0 (2024-01-15)" (the format defaults to "adoc")
 writeFileSync('CHANGELOG.adoc', rollUnreleased(content, '1.0.0', '2024-01-15'))
 
 // Extract "v1.0.0" as Markdown release notes
 const notes = await extractReleaseNotes(content, '1.0.0', {
   author: 'octocat',
   previousTag: 'v0.9.0',
-  repoUrl: 'https://github.com/example/example',
+  repoUrl: 'https://github.com/octocat/hello-world',
 })
 ----
 
-Pass `{ format: 'markdown' }` as the last argument to work with a native Markdown file instead, and `{ format: 'markdown', style: 'title-paren' }` (or another preset, or a custom style object) to match its heading syntax.
+Both functions take an optional last argument with `format` (`adoc` or `markdown`), `style` (a preset name or a custom style object), and, for `rollUnreleased`, `suffix`.
 
 == Behavior notes
 
-* The version can be given with or without a leading `v` (`v1.0.0` is the same as `1.0.0`); release headings are written per the style, and the git tag is always `v<version>`.
+* The version can be given with or without a leading `v` (`v1.0.0` is the same as `1.0.0`). Release headings are written as the style dictates, and the git tag is always `v<version>`.
 * `release` refuses to roll the "Unreleased" section into a version that already has a release section, whatever its date (or suffix).
 * CRLF line endings are supported: `release` writes them back as-is, and `notes` always outputs LF.
-* A `##`/`###` line inside a fenced code block (including AsciiDoc source/literal blocks, converted to fenced code blocks by downdoc) is never mistaken for a release or category heading.
-* The "Summary" and "Changelog" sections of the release notes are omitted when the release has no summary paragraph, or no category section, respectively.
+* A `##`/`###` line inside a fenced code block (including AsciiDoc source and literal blocks, converted to fenced code blocks by downdoc) is never mistaken for a release or category heading.
 
 == License
 

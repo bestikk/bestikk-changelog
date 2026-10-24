@@ -21,6 +21,8 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 
 === Changed
 
+* Reposition the README as "Keep a Changelog for AsciiDoc, with Markdown release notes for GitHub", with a quick start and an example of generated release notes; Markdown changelogs are presented as a secondary format
+* Freeze the list of heading style presets (`keepachangelog`, `title-paren`, `title-paren-suffix`), and document the custom style object as an advanced, library-only escape hatch whose shape may change in a future major version
 * Parse CLI arguments with `node:util`'s `parseArgs()`: options now also accept the `--option=value` form and can be placed before the command, and `--help`/`-h` prints the usage
 
 === Infrastructure
