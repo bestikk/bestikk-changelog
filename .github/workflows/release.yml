@@ -14,6 +14,9 @@ permissions:
 jobs:
   release:
     runs-on: ubuntu-latest
+    # Passed via the environment rather than interpolated with ${{ }} into the scripts below
+    env:
+      VERSION: ${{ inputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -41,36 +44,41 @@ jobs:
       - name: Test
         run: npm test
 
+      # Unlike "npm pkg set version", "npm version" also updates package-lock.json, and
+      # rejects an invalid version (or the current one) before anything else happens.
       - name: Set package version
-        run: npm pkg set version=${{ inputs.version }}
+        run: npm version "$VERSION" --no-git-tag-version
 
       # Dogfooding: roll the "Unreleased" section into a dated "v<version>" section
       - name: Roll changelog
-        run: node bin/cli.js release ${{ inputs.version }}
+        run: node bin/cli.js release "$VERSION"
 
       - name: Configure git
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+      # Local only for now: nothing is pushed until the package is published, so a failed
+      # publish leaves no commit/tag behind and the workflow can simply be re-run.
       - name: Commit and tag
         run: |
-          git commit -am "chore: release ${{ inputs.version }}"
-          git tag "v${{ inputs.version }}"
-
-      - name: Push
-        run: git push && git push --tags
+          git commit -am "chore: release $VERSION"
+          git tag "v$VERSION"
 
       # Dogfooding: extract the release section as Markdown release notes
       - name: Generate release notes
-        run: node bin/cli.js notes ${{ inputs.version }} > /tmp/release-notes.md
+        run: node bin/cli.js notes "$VERSION" > "$RUNNER_TEMP/release-notes.md"
 
       # Trusted publishing (OIDC): npm exchanges the workflow's id-token for a short-lived
       # publish token, so no NPM_TOKEN secret is needed.
       - name: Publish to npm
         run: npm publish --provenance --access public
 
+      # Atomic: either both the release commit and the tag are pushed, or neither is
+      - name: Push
+        run: git push --atomic origin HEAD "refs/tags/v$VERSION"
+
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release create "v${{ inputs.version }}" --title "v${{ inputs.version }}" --notes-file /tmp/release-notes.md
+        run: gh release create "v$VERSION" --title "v$VERSION" --notes-file "$RUNNER_TEMP/release-notes.md"

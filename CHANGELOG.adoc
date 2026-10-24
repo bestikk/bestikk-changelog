@@ -18,6 +18,10 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 
 * Parse CLI arguments with `node:util`'s `parseArgs()`: options now also accept the `--option=value` form and can be placed before the command, and `--help`/`-h` prints the usage
 
+=== Infrastructure
+
+* Release workflow: set the version with `npm version` so `package-lock.json` is updated too (it was stuck at `1.0.0`), and push the release commit and tag only once the package is published, so a failed publish can simply be re-run
+
 == v1.0.2 (2026-08-14)
 
 === Infrastructure
