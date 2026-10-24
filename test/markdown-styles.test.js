@@ -137,11 +137,11 @@ test('rollUnreleased keeps "$" patterns in the suffix verbatim', () => {
 test('extractReleaseNotes rejects an unsupported markdown style', async () => {
   await assert.rejects(
     () => extractReleaseNotes('## Unreleased\n', '1.0.0', { format, style: 'yaml-frontmatter' }),
-    /Unsupported markdown changelog style: "yaml-frontmatter"/,
+    /Unsupported changelog style: "yaml-frontmatter"/,
   )
 })
 
-test('accepts a fully custom style object', async () => {
+test('accepts a legacy (deprecated) custom style object', async () => {
   const customStyle = {
     unreleasedHeading: '## TBD',
     releaseHeadingTemplate: (version, date) => `## Release ${version} — ${date}`,

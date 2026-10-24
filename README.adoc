@@ -133,49 +133,57 @@ Keep a Changelog link reference definitions at the bottom of the file are suppor
 
 == Heading styles
 
-The `style` option selects how the "Unreleased" and release headings are spelled. The same presets apply to both formats: an AsciiDoc changelog uses the `==` marker where a Markdown changelog uses `##`.
+Heading syntax is described with two templates, written without the heading marker: one for the "Unreleased" heading, and one for release headings. The same templates are used to write the headings (`release`) and to read them back (`notes`), so the two always agree. They apply to both formats: an AsciiDoc changelog gets the `==` marker where a Markdown changelog gets `##`.
 
-`title-paren` (default for `adoc`):: e.g. https://github.com/ggrossetie/asciidoctor-emoji/blob/main/CHANGELOG.md[asciidoctor-emoji].
-+
-[source,text]
-----
-== Unreleased
-== v<version> (<date>)
-----
+The `style` option selects one of these presets:
 
-`keepachangelog` (default for `markdown`):: Canonical {uri-keepachangelog}[Keep a Changelog] syntax.
-+
-[source,text]
-----
-== [Unreleased]
-== [<version>] - <date>
-----
+[cols="1,1,2"]
+|===
+|Preset |Unreleased |Release
 
-`title-paren-suffix`:: e.g. https://github.com/asciidoctor/asciidoctor-vscode/blob/main/CHANGELOG.md[asciidoctor-vscode]. The release heading may also have a "(qualifier)" and a free-form suffix. Both are recognized when reading, but only the suffix is written, via the `suffix` option (e.g. `--suffix "- @octocat"`).
-+
-[source,text]
-----
-== Unreleased
-== <version> [(qualifier)] (<date>) [suffix]
-----
+|`title-paren` (default for `adoc`), e.g. https://github.com/ggrossetie/asciidoctor-emoji/blob/main/CHANGELOG.md[asciidoctor-emoji]
+|`Unreleased`
+|`+v{version} ({date})+`
 
-The list of presets is frozen: new conventions won't be added as presets.
+|`keepachangelog` (default for `markdown`), the canonical {uri-keepachangelog}[Keep a Changelog] syntax
+|`[Unreleased]`
+|`+[{version}] - {date}+`
 
-For a convention that doesn't fit any preset, the library (not the CLI) also accepts a custom style object. It is an advanced escape hatch: its release heading template and regex must be kept consistent by hand, and its shape may change in a future major version.
+|`title-paren-suffix`, e.g. https://github.com/asciidoctor/asciidoctor-vscode/blob/main/CHANGELOG.md[asciidoctor-vscode]
+|`Unreleased`
+|`+{version} {qualifier} ({date}) {suffix}+`
+|===
+
+The list of presets is frozen: new conventions won't be added as presets. Use custom templates instead.
+
+=== Custom templates
+
+For a convention that doesn't fit any preset, pass your own templates. In the library, use a `+{ unreleased, release }+` object as the `style`:
 
 [source,js]
 ----
-const style = {
-  unreleasedHeading: '## TBD',
-  releaseHeadingTemplate: (version, date) => `## Release ${version} — ${date}`,
-  releaseHeadingRegex: (escapedVersion) =>
-    new RegExp(`(?:^|\\n)## Release ${escapedVersion} — ([^\\n]+)\\n([\\s\\S]*?)(?=\\n## |$)`),
-}
+const style = { unreleased: 'TBD', release: 'Release {version} — {date}' }
 
 rollUnreleased(content, '1.0.0', '2024-01-15', { format: 'markdown', style })
 ----
 
-The regex always matches against Markdown (an AsciiDoc changelog is converted first), so it uses `##` whatever the format.
+On the command line, use `--release-heading` and `--unreleased-heading` instead of `--style`:
+
+[source,shell]
+----
+npx bestikk-changelog release 1.0.0 --file CHANGELOG.md --unreleased-heading TBD --release-heading "Release {version} — {date}"
+----
+
+`unreleased` (`--unreleased-heading`) is plain text, and defaults to `Unreleased`. `release` (`--release-heading`) supports these placeholders:
+
+`+{version}+`:: Required. The version, without `v` prefix: write `+v{version}+` for one.
+`+{date}+`:: Required. The release date.
+`+{qualifier}+`:: Optional. A parenthesized qualifier, e.g. `(pre-release)`. Recognized when reading, never written, since it's the project that decides when a release is a pre-release.
+`+{suffix}+`:: Optional. Free-form text up to the end of the line, written from the `suffix` option (`--suffix`), e.g. `- @octocat`.
+
+An optional placeholder must be preceded by whitespace, which goes away with it when it's absent. Any whitespace in a template matches any run of spaces or tabs when reading.
+
+The legacy custom style object, with `unreleasedHeading`, `releaseHeadingTemplate` and `releaseHeadingRegex` functions, is still accepted but deprecated: it emits a `DeprecationWarning`, and will be removed in the next major version.
 
 == Install
 
@@ -194,14 +202,16 @@ npm install --save-dev @bestikk/changelog
 ----
 bestikk-changelog release <version> [--file CHANGELOG.adoc] [--format adoc|markdown]
                                     [--style keepachangelog|title-paren|title-paren-suffix]
+                                    [--release-heading template] [--unreleased-heading text]
                                     [--date YYYY-MM-DD] [--suffix text]
 bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown]
                                   [--style keepachangelog|title-paren|title-paren-suffix]
+                                  [--release-heading template] [--unreleased-heading text]
                                   [--author name] [--previous-tag tag] [--repo-url url]
                                   [--published-by text]
 ----
 
-Both commands accept `--file <path>` (default: `CHANGELOG.adoc`), `--format <adoc|markdown>` (default: inferred from `--file`), and `--style <name>` (default: `title-paren` for `adoc`, `keepachangelog` for `markdown`).
+Both commands accept `--file <path>` (default: `CHANGELOG.adoc`), `--format <adoc|markdown>` (default: inferred from `--file`), and `--style <name>` (default: `title-paren` for `adoc`, `keepachangelog` for `markdown`). Instead of `--style`, `--release-heading <template>` and `--unreleased-heading <text>` set custom templates (see <<Custom templates>>).
 
 `release` accepts `--date <YYYY-MM-DD>` (default: today) and `--suffix <text>` (appended to the release heading by the `title-paren-suffix` style).
 
@@ -238,7 +248,7 @@ const notes = await extractReleaseNotes(content, '1.0.0', {
 })
 ----
 
-Both functions take an optional last argument with `format` (`adoc` or `markdown`), `style` (a preset name or a custom style object), and, for `rollUnreleased`, `suffix`. `extractReleaseNotes` also accepts `publishedBy` (defaults to `'GitHub'`; an empty string or `null` omits the "Published by" line).
+Both functions take an optional last argument with `format` (`adoc` or `markdown`), `style` (a preset name or a `+{ unreleased, release }+` template object), and, for `rollUnreleased`, `suffix`. `extractReleaseNotes` also accepts `publishedBy` (defaults to `'GitHub'`; an empty string or `null` omits the "Published by" line).
 
 == Behavior notes
 

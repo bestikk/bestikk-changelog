@@ -2,15 +2,19 @@
 // Usage:
 //   bestikk-changelog release <version> [--file CHANGELOG.adoc] [--format adoc|markdown]
 //                                        [--style keepachangelog|title-paren|title-paren-suffix]
+//                                        [--release-heading template] [--unreleased-heading text]
 //                                        [--date YYYY-MM-DD] [--suffix text]
 //   bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown]
 //                                      [--style keepachangelog|title-paren|title-paren-suffix]
+//                                      [--release-heading template] [--unreleased-heading text]
 //                                      [--author name] [--previous-tag tag] [--repo-url url]
 //                                      [--published-by text]
 //
 // "--format" defaults to what "--file" looks like ("*.md"/"*.markdown" -> markdown, otherwise
 // adoc). "--style" defaults to "keepachangelog" for markdown and "title-paren" for adoc; see
-// lib/heading-styles.js for what each preset expects.
+// lib/heading-styles.js for what each preset expects. "--release-heading" (with an optional
+// "--unreleased-heading", "Unreleased" by default) replaces "--style" with custom templates,
+// e.g. --release-heading "Release {version} ({date})".
 //
 // Exit codes: 0 on success, 9 on invalid usage (bad command/option, usage printed), 1 on any
 // other error (e.g. changelog file or section not found), reported as a single-line message.
@@ -26,9 +30,11 @@ const USAGE =
   'Usage:\n' +
   '  bestikk-changelog release <version> [--file CHANGELOG.adoc] [--format adoc|markdown]\n' +
   '                                       [--style keepachangelog|title-paren|title-paren-suffix]\n' +
+  '                                       [--release-heading template] [--unreleased-heading text]\n' +
   '                                       [--date YYYY-MM-DD] [--suffix text]\n' +
   '  bestikk-changelog notes <version> [--file CHANGELOG.adoc] [--format adoc|markdown]\n' +
   '                                     [--style keepachangelog|title-paren|title-paren-suffix]\n' +
+  '                                     [--release-heading template] [--unreleased-heading text]\n' +
   '                                     [--author name] [--previous-tag tag] [--repo-url url]\n' +
   '                                     [--published-by text]'
 
@@ -38,6 +44,8 @@ const OPTIONS = {
   file: { type: 'string', default: 'CHANGELOG.adoc' },
   format: { type: 'string' },
   style: { type: 'string' },
+  'release-heading': { type: 'string' },
+  'unreleased-heading': { type: 'string' },
   date: { type: 'string' },
   suffix: { type: 'string' },
   author: { type: 'string' },
@@ -66,9 +74,29 @@ function parseArgs(argv) {
   }
   if (!version) throw new UsageError(`Missing <version> for the "${command}" command`)
   if (extra.length) throw new UsageError(`Unexpected argument: ${extra[0]}`)
-  const { 'previous-tag': previousTag, 'repo-url': repoUrl, 'published-by': publishedBy, ...options } = values
+  const {
+    'previous-tag': previousTag,
+    'repo-url': repoUrl,
+    'published-by': publishedBy,
+    'release-heading': releaseHeading,
+    'unreleased-heading': unreleasedHeading,
+    ...options
+  } = values
+  if (releaseHeading !== undefined && options.style !== undefined) {
+    throw new UsageError('--style and --release-heading cannot be used together')
+  }
+  if (unreleasedHeading !== undefined && releaseHeading === undefined) {
+    throw new UsageError('--unreleased-heading requires --release-heading')
+  }
+  // Custom templates replace the style preset (see lib/heading-styles.js)
+  const style =
+    releaseHeading === undefined ? options.style : { unreleased: unreleasedHeading, release: releaseHeading }
   // Normalized here too, since it's also used to look up the "v<version>" git tag
-  return { command, version: normalizeVersion(version), options: { ...options, previousTag, repoUrl, publishedBy } }
+  return {
+    command,
+    version: normalizeVersion(version),
+    options: { ...options, style, previousTag, repoUrl, publishedBy },
+  }
 }
 
 function git(args) {
