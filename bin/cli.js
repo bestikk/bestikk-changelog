@@ -19,6 +19,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { parseArgs as parseNodeArgs } from 'node:util'
 import { extractReleaseNotes, rollUnreleased } from '../index.js'
+import { normalizeVersion } from '../lib/util.js'
 
 const USAGE =
   'Usage:\n' +
@@ -63,7 +64,8 @@ function parseArgs(argv) {
   if (!version) throw new UsageError(`Missing <version> for the "${command}" command`)
   if (extra.length) throw new UsageError(`Unexpected argument: ${extra[0]}`)
   const { 'previous-tag': previousTag, 'repo-url': repoUrl, ...options } = values
-  return { command, version, options: { ...options, previousTag, repoUrl } }
+  // Normalized here too, since it's also used to look up the "v<version>" git tag
+  return { command, version: normalizeVersion(version), options: { ...options, previousTag, repoUrl } }
 }
 
 function git(args) {

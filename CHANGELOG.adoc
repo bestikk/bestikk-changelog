@@ -13,6 +13,11 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 * Keep `$` patterns (e.g. `$&`) verbatim in the release heading written by `release`, instead of interpreting them as `String.prototype.replace()` replacement patterns
 * Reject a CLI option missing its value (e.g. a trailing `--file`, or `--file --format md`) with the usage, instead of crashing with a stack trace or silently ignoring it (`--date` fell back to today)
 * Report CLI errors (e.g. changelog file or section not found) as a one-line message with exit code `1`, instead of an uncaught exception's stack trace
+* Ignore `##`/`###` lines inside fenced code blocks (including AsciiDoc source/literal blocks) when looking for the release section and its categories; such a line used to cut the release notes short
+* Omit the "Summary" (or "Changelog") section from the release notes when the release has no summary paragraph (or no category section), instead of rendering an empty section
+* Refuse to `release` a version that already has a release section, instead of adding a duplicate one
+* Accept a `v`-prefixed version (e.g. `release v1.0.0`), which used to produce a heading such as `== vv1.0.0 (...)`
+* Support CRLF line endings: `notes` failed to find the release section with the `title-paren`/`title-paren-suffix` styles (and kept a trailing `\r` in the date with `keepachangelog`), and `release` inserted LF line endings into a CRLF file
 
 === Changed
 

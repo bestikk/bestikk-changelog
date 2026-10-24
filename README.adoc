@@ -155,6 +155,14 @@ const notes = await extractReleaseNotes(content, '1.0.0', {
 
 Pass `{ format: 'markdown' }` as the last argument to work with a native Markdown file instead, and `{ format: 'markdown', style: 'title-paren' }` (or another preset, or a custom style object) to match its heading syntax.
 
+== Behavior notes
+
+* The version can be given with or without a leading `v` (`v1.0.0` is the same as `1.0.0`); release headings are written per the style, and the git tag is always `v<version>`.
+* `release` refuses to roll the "Unreleased" section into a version that already has a release section, whatever its date (or suffix).
+* CRLF line endings are supported: `release` writes them back as-is, and `notes` always outputs LF.
+* A `##`/`###` line inside a fenced code block (including AsciiDoc source/literal blocks, converted to fenced code blocks by downdoc) is never mistaken for a release or category heading.
+* The "Summary" and "Changelog" sections of the release notes are omitted when the release has no summary paragraph, or no category section, respectively.
+
 == License
 
 MIT
