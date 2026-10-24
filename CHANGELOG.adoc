@@ -6,6 +6,12 @@ For a detailed view of what has changed, refer to the {uri-repo}/commits/main[co
 
 == Unreleased
 
+=== Fixed
+
+* Fix the `title-paren-suffix` style swallowing the first line of a release's summary paragraph when the release heading has no suffix
+* Forward the `suffix` option to the heading template for the `adoc` format too (it was silently ignored, e.g. with `--style title-paren-suffix --suffix "- @octocat"`)
+* Keep `$` patterns (e.g. `$&`) verbatim in the release heading written by `release`, instead of interpreting them as `String.prototype.replace()` replacement patterns
+
 == v1.0.2 (2026-08-14)
 
 === Infrastructure
